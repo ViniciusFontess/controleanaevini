@@ -1,5 +1,9 @@
 -- Patrimonio: initial schema (accounts, transactions, snapshots, goals)
 -- All tables are per-user (auth.uid()) with RLS enforced.
+--
+-- Safe to run more than once: tables use `create table if not exists` and every
+-- policy is dropped before being recreated (Postgres has no
+-- `create policy if not exists`). Running it never drops data.
 
 create table if not exists public.accounts (
   id uuid primary key default gen_random_uuid(),
@@ -52,6 +56,11 @@ alter table public.snapshots enable row level security;
 alter table public.goals enable row level security;
 
 -- accounts policies
+drop policy if exists "accounts_select_own" on public.accounts;
+drop policy if exists "accounts_insert_own" on public.accounts;
+drop policy if exists "accounts_update_own" on public.accounts;
+drop policy if exists "accounts_delete_own" on public.accounts;
+
 create policy "accounts_select_own" on public.accounts for select
   to authenticated using ( (select auth.uid()) = user_id );
 create policy "accounts_insert_own" on public.accounts for insert
@@ -62,6 +71,11 @@ create policy "accounts_delete_own" on public.accounts for delete
   to authenticated using ( (select auth.uid()) = user_id );
 
 -- transactions policies
+drop policy if exists "transactions_select_own" on public.transactions;
+drop policy if exists "transactions_insert_own" on public.transactions;
+drop policy if exists "transactions_update_own" on public.transactions;
+drop policy if exists "transactions_delete_own" on public.transactions;
+
 create policy "transactions_select_own" on public.transactions for select
   to authenticated using ( (select auth.uid()) = user_id );
 create policy "transactions_insert_own" on public.transactions for insert
@@ -71,7 +85,12 @@ create policy "transactions_update_own" on public.transactions for update
 create policy "transactions_delete_own" on public.transactions for delete
   to authenticated using ( (select auth.uid()) = user_id );
 
--- snapshots policies (insert/select only — a snapshot is a closed record)
+-- snapshots policies (insert/select/delete only — a snapshot is a closed record,
+-- so "refazer o mês" is delete + insert rather than update)
+drop policy if exists "snapshots_select_own" on public.snapshots;
+drop policy if exists "snapshots_insert_own" on public.snapshots;
+drop policy if exists "snapshots_delete_own" on public.snapshots;
+
 create policy "snapshots_select_own" on public.snapshots for select
   to authenticated using ( (select auth.uid()) = user_id );
 create policy "snapshots_insert_own" on public.snapshots for insert
@@ -79,7 +98,12 @@ create policy "snapshots_insert_own" on public.snapshots for insert
 create policy "snapshots_delete_own" on public.snapshots for delete
   to authenticated using ( (select auth.uid()) = user_id );
 
--- goals policies
+-- goals policies (table exists for later; the app has no screen for it yet)
+drop policy if exists "goals_select_own" on public.goals;
+drop policy if exists "goals_insert_own" on public.goals;
+drop policy if exists "goals_update_own" on public.goals;
+drop policy if exists "goals_delete_own" on public.goals;
+
 create policy "goals_select_own" on public.goals for select
   to authenticated using ( (select auth.uid()) = user_id );
 create policy "goals_insert_own" on public.goals for insert
