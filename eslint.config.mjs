@@ -12,7 +12,19 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Referência visual do Claude Design — não faz parte do app Next.js.
+    "support.js",
   ]),
+  {
+    rules: {
+      // Server Actions usadas com useActionState precisam receber (prevState, formData)
+      // mesmo quando não leem o estado anterior.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
