@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#F7F9FC;font-family:'Inter',system-ui,sans-serif;color:#1A1F2B;-webkit-font-smoothing:antialiased}
+a{color:#5B8FD9;text-decoration:none}a:hover{color:#3A6FC0}
+input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;background:#E4EAF3;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;background:#7BA8E8;border:4px solid #fff;box-shadow:0 2px 8px rgba(91,143,217,.4);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#7BA8E8;border:4px solid #fff;box-shadow:0 2px 8px rgba(91,143,217,.4);cursor:pointer}
+/* ---------- shell ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{display:none}
+.nav-label{display:none}
+.main{flex:1;min-width:0;padding:20px 16px 96px;max-width:100%}
+.bottombar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-top:1px solid #EDF1F7;padding:8px 6px calc(8px + env(safe-area-inset-bottom));justify-content:space-around}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:52px;background:none;border:none;color:#8A93A6;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;border-radius:12px;padding:6px 4px;transition:color .15s,background .15s}
+.nav-btn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.app[data-screen="dashboard"] .nav-dashboard,.app[data-screen="patrimonio"] .nav-patrimonio,.app[data-screen="fluxo"] .nav-fluxo,.app[data-screen="projecao"] .nav-projecao{color:#5B8FD9}
+/* ---------- screens ---------- */
+.screen{display:none;max-width:1120px;margin:0 auto}
+.app[data-screen="dashboard"] .screen-dashboard,.app[data-screen="patrimonio"] .screen-patrimonio,.app[data-screen="fluxo"] .screen-fluxo,.app[data-screen="projecao"] .screen-projecao{display:block}
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(26,31,43,.05);padding:22px}
+.summary-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.charts-row{display:grid;grid-template-columns:1fr;gap:16px}
+.pat-cols{display:grid;grid-template-columns:1fr;gap:16px}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:18px}
+/* ---------- tablet ---------- */
+@media(min-width:768px){
+ .sidebar{display:flex;flex-direction:column;width:76px;flex:none;position:sticky;top:0;height:100vh;background:#fff;border-right:1px solid #EDF1F7;padding:22px 12px;gap:6px;z-index:40}
+ .bottombar{display:none}
+ .main{padding:28px 26px 40px}
+ .summary-grid{grid-template-columns:repeat(2,1fr)}
+ .sb-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:12px 6px;border-radius:14px;background:none;border:none;color:#8A93A6;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+ .sb-btn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+ .app[data-screen="dashboard"] .sb-dashboard,.app[data-screen="patrimonio"] .sb-patrimonio,.app[data-screen="fluxo"] .sb-fluxo,.app[data-screen="projecao"] .sb-projecao{color:#5B8FD9;background:#EEF4FC}
+ .proj-card{border:1.5px solid transparent}
+ [data-proj="6"] .proj-6,[data-proj="12"] .proj-12,[data-proj="24"] .proj-24{border-color:#7BA8E8;background:#F5F9FE}
+ .pat-cols{grid-template-columns:1fr 1fr}
+ .donut-wrap{flex-direction:row;justify-content:space-between;align-items:center}
+}
+/* ---------- desktop ---------- */
+@media(min-width:1024px){
+ .sidebar{width:230px;align-items:stretch;padding:26px 16px}
+ .nav-label{display:inline}
+ .sb-btn{flex-direction:row;justify-content:flex-start;gap:14px;padding:13px 16px;font-size:14.5px}
+ .main{padding:34px 40px 48px}
+ .summary-grid{grid-template-columns:repeat(3,1fr)}
+ .charts-row{grid-template-columns:1.5fr 1fr}
+}
+</style>
+</helmet>
+<div class="app" data-screen="{{ currentScreen }}">
+
+  <aside class="sidebar">
+    <div style="display:flex;align-items:center;gap:11px;padding:6px 8px 22px">
+      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#7BA8E8,#8FD4A8);flex:none;display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15l5-5 4 4 7-8"></path></svg>
+      </div>
+      <span class="nav-label" style="font-weight:800;font-size:16px;letter-spacing:-.02em">Patrimônio</span>
+    </div>
+    <button class="sb-btn sb-dashboard" data-screen="dashboard" onClick="{{ navTo }}"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"></path><path d="M5 9v11h14V9"></path></svg><span class="nav-label">Dashboard</span></button>
+    <button class="sb-btn sb-patrimonio" data-screen="patrimonio" onClick="{{ navTo }}"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path><circle cx="17" cy="14.5" r="1.2"></circle></svg><span class="nav-label">Patrimônio</span></button>
+    <button class="sb-btn sb-fluxo" data-screen="fluxo" onClick="{{ navTo }}"><svg viewBox="0 0 24 24"><path d="M4 8h13"></path><path d="M14 5l3 3-3 3"></path><path d="M20 16H7"></path><path d="M10 13l-3 3 3 3"></path></svg><span class="nav-label">Fluxo de caixa</span></button>
+    <button class="sb-btn sb-projecao" data-screen="projecao" onClick="{{ navTo }}"><svg viewBox="0 0 24 24"><path d="M4 16l5-5 4 3 7-8"></path><path d="M20 6h-4"></path><path d="M20 6v4"></path></svg><span class="nav-label">Projeção</span></button>
+  </aside>
+
+  <main class="main">
+
+    <!-- ============ DASHBOARD ============ -->
+    <section class="screen screen-dashboard">
+      <div style="margin-bottom:22px">
+        <div style="font-size:13px;color:#8A93A6;font-weight:500">{{ saudacao }}</div>
+        <div style="font-size:13px;color:#8A93A6;font-weight:500;margin-top:2px">{{ mesAtual }}</div>
+      </div>
+
+      <!-- HERO net worth -->
+      <div class="card" style="padding:30px 26px;margin-bottom:16px;background:linear-gradient(160deg,#fff,#FBFCFE)">
+        <div style="font-size:13px;color:#8A93A6;font-weight:600;letter-spacing:.01em">Patrimônio líquido</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <span style="font-size:20px;font-weight:600;color:#8A93A6">R$</span>
+          <span style="font-size:52px;line-height:1;font-weight:800;letter-spacing:-.03em">{{ nwStr }}</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:#EAF7EF;color:#3B9A5F;padding:6px 12px;border-radius:999px;font-size:13.5px;font-weight:700">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"></path></svg>
+          <span>{{ nwChangePct }} · {{ nwChangeAbs }} este mês</span>
+        </div>
+      </div>
+
+      <!-- summary cards -->
+      <div class="summary-grid" style="margin-bottom:20px">
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:9px;color:#8A93A6;font-size:13px;font-weight:600"><span style="width:9px;height:9px;border-radius:3px;background:#7BA8E8"></span>Total de ativos</div>
+          <div style="font-size:27px;font-weight:800;margin-top:12px;letter-spacing:-.02em">R$ {{ ativosStr }}</div>
+          <div style="font-size:12.5px;color:#8A93A6;margin-top:4px">{{ ativos.length }} itens</div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:9px;color:#8A93A6;font-size:13px;font-weight:600"><span style="width:9px;height:9px;border-radius:3px;background:#F2A0A0"></span>Total de passivos</div>
+          <div style="font-size:27px;font-weight:800;margin-top:12px;letter-spacing:-.02em;color:#D45B5B">R$ {{ passivosStr }}</div>
+          <div style="font-size:12.5px;color:#8A93A6;margin-top:4px">{{ passivos.length }} itens</div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:9px;color:#8A93A6;font-size:13px;font-weight:600"><span style="width:9px;height:9px;border-radius:3px;background:#8FD4A8"></span>Sobra do mês</div>
+          <div style="font-size:27px;font-weight:800;margin-top:12px;letter-spacing:-.02em;color:#3B9A5F">+R$ {{ sobraStr }}</div>
+          <div style="font-size:12.5px;color:#8A93A6;margin-top:4px">receitas − despesas</div>
+        </div>
+      </div>
+
+      <!-- charts -->
+      <div class="charts-row">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div style="font-size:15px;font-weight:700">Evolução do patrimônio</div>
+            <div style="font-size:12px;color:#8A93A6;font-weight:600">12 meses</div>
+          </div>
+          <div style="min-height:200px">{{ netWorthChart }}</div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div style="font-size:15px;font-weight:700">Receitas vs despesas</div>
+          </div>
+          <div style="display:flex;gap:16px;margin:4px 0 8px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8A93A6;font-weight:600"><span style="width:9px;height:9px;border-radius:3px;background:#8FD4A8"></span>Receitas</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8A93A6;font-weight:600"><span style="width:9px;height:9px;border-radius:3px;background:#F2A0A0"></span>Despesas</div>
+          </div>
+          <div style="min-height:200px">{{ barsChart }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PATRIMONIO ============ -->
+    <section class="screen screen-patrimonio">
+      <h1 style="font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px">Patrimônio</h1>
+      <p style="color:#8A93A6;font-size:14px;margin:0 0 22px">Composição dos seus ativos e passivos</p>
+
+      <div class="card" style="margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:18px">Composição dos ativos</div>
+        <div class="donut-wrap">
+          <div style="width:210px;flex:none">{{ donutChart }}</div>
+          <div style="flex:1;width:100%;display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ donutLegend }}" as="d" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:11px;height:11px;border-radius:4px;flex:none;background:{{ d.color }}"></span>
+                <span style="flex:1;font-size:14px;font-weight:600">{{ d.n }}</span>
+                <span style="font-size:13px;color:#8A93A6;font-weight:600">{{ d.pct }}</span>
+                <span style="font-size:14px;font-weight:700;min-width:96px;text-align:right">R$ {{ d.vStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div class="pat-cols">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700"><span style="width:10px;height:10px;border-radius:3px;background:#7BA8E8"></span>Ativos</div>
+            <div style="font-size:15px;font-weight:800">R$ {{ ativosStr }}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ ativos }}" as="a" hint-placeholder-count="5">
+              <div style="padding:12px 0;border-top:1px solid #F0F3F8">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                  <div style="min-width:0"><div style="font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.n }}</div><div style="font-size:12px;color:#8A93A6;margin-top:2px">{{ a.c }}</div></div>
+                  <div style="font-size:15px;font-weight:700;white-space:nowrap">R$ {{ a.vStr }}</div>
+                </div>
+                <div style="height:5px;border-radius:5px;background:#F0F3F8;margin-top:9px;overflow:hidden"><div style="height:100%;border-radius:5px;background:#7BA8E8;width:{{ a.bar }}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700"><span style="width:10px;height:10px;border-radius:3px;background:#F2A0A0"></span>Passivos</div>
+            <div style="font-size:15px;font-weight:800;color:#D45B5B">R$ {{ passivosStr }}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ passivos }}" as="p" hint-placeholder-count="3">
+              <div style="padding:12px 0;border-top:1px solid #F0F3F8">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                  <div style="min-width:0"><div style="font-size:14.5px;font-weight:600">{{ p.n }}</div><div style="font-size:12px;color:#8A93A6;margin-top:2px">{{ p.c }}</div></div>
+                  <div style="font-size:15px;font-weight:700;color:#D45B5B;white-space:nowrap">R$ {{ p.vStr }}</div>
+                </div>
+                <div style="height:5px;border-radius:5px;background:#F0F3F8;margin-top:9px;overflow:hidden"><div style="height:100%;border-radius:5px;background:#F2A0A0;width:{{ p.bar }}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FLUXO ============ -->
+    <section class="screen screen-fluxo">
+      <h1 style="font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px">Fluxo de caixa</h1>
+      <p style="color:#8A93A6;font-size:14px;margin:0 0 20px">{{ mesAtual }}</p>
+
+      <div class="summary-grid" style="grid-template-columns:1fr;margin-bottom:18px">
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:13px;color:#8A93A6;font-weight:600">Saldo do mês</div>
+            <div style="font-size:32px;font-weight:800;color:#3B9A5F;letter-spacing:-.02em;margin-top:4px">+R$ {{ saldoStr }}</div>
+          </div>
+          <div style="display:flex;gap:22px">
+            <div><div style="font-size:12px;color:#8A93A6;font-weight:600">Entradas</div><div style="font-size:18px;font-weight:700;color:#3B9A5F;margin-top:3px">R$ {{ entradasStr }}</div></div>
+            <div><div style="font-size:12px;color:#8A93A6;font-weight:600">Saídas</div><div style="font-size:18px;font-weight:700;color:#D45B5B;margin-top:3px">R$ {{ saidasStr }}</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:6px">
+        <sc-for list="{{ fluxoChips }}" as="c" hint-placeholder-count="6">
+          <button data-cat="{{ c.key }}" onClick="{{ setFluxoFilter }}" style="{{ c.style }}">{{ c.key }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ transacoesFiltradas }}" as="t" hint-placeholder-count="6">
+          <div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;background:{{ t.iconBg }};color:{{ t.iconColor }}">{{ t.initial }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.n }}</div>
+              <div style="font-size:12px;color:#8A93A6;margin-top:2px">{{ t.c }} · {{ t.d }}</div>
+            </div>
+            <div style="font-size:15.5px;font-weight:700;white-space:nowrap;color:{{ t.color }}">{{ t.valorStr }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- ============ PROJECAO ============ -->
+    <section class="screen screen-projecao">
+      <h1 style="font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px">Projeção</h1>
+      <p style="color:#8A93A6;font-size:14px;margin:0 0 20px">Simule o crescimento do seu patrimônio</p>
+
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+          <div style="font-size:15px;font-weight:700">Patrimônio projetado</div>
+          <div style="display:flex;gap:16px;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8A93A6;font-weight:600"><span style="width:16px;height:3px;border-radius:3px;background:#7BA8E8"></span>Histórico</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8A93A6;font-weight:600"><span style="width:16px;height:3px;border-radius:3px;background:repeating-linear-gradient(90deg,#8FD4A8 0 5px,transparent 5px 9px)"></span>Projeção</div>
+          </div>
+        </div>
+        <div style="min-height:230px">{{ projChart }}</div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+          <div style="font-size:15px;font-weight:700">Aporte mensal</div>
+          <div style="font-size:24px;font-weight:800;color:#5B8FD9;letter-spacing:-.02em">R$ {{ aporteStr }}</div>
+        </div>
+        <input type="range" min="0" max="6000" step="100" value="{{ aporteMensal }}" onInput="{{ onAporte }}" style="width:100%;margin-top:18px">
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:#8A93A6;font-weight:600;margin-top:8px"><span>R$ 0</span><span>R$ 6.000</span></div>
+        <div style="font-size:12.5px;color:#8A93A6;margin-top:14px;line-height:1.5">Considerando rendimento médio de ~0,3% ao mês sobre o patrimônio + seus aportes.</div>
+      </div>
+
+      <div class="summary-grid" data-proj="{{ projMeses }}">
+        <div class="card proj-card proj-6" data-m="6" onClick="{{ setProjMeses }}" style="cursor:pointer;transition:.15s">
+          <div style="font-size:13px;color:#8A93A6;font-weight:600">Em 6 meses</div>
+          <div style="font-size:24px;font-weight:800;margin-top:10px;letter-spacing:-.02em">R$ {{ proj6 }}</div>
+          <div style="font-size:12.5px;color:#3B9A5F;font-weight:700;margin-top:4px">{{ proj6Pct }}</div>
+        </div>
+        <div class="card proj-card proj-12" data-m="12" onClick="{{ setProjMeses }}" style="cursor:pointer;transition:.15s">
+          <div style="font-size:13px;color:#8A93A6;font-weight:600">Em 12 meses</div>
+          <div style="font-size:24px;font-weight:800;margin-top:10px;letter-spacing:-.02em">R$ {{ proj12 }}</div>
+          <div style="font-size:12.5px;color:#3B9A5F;font-weight:700;margin-top:4px">{{ proj12Pct }}</div>
+        </div>
+        <div class="card proj-card proj-24" data-m="24" onClick="{{ setProjMeses }}" style="cursor:pointer;transition:.15s">
+          <div style="font-size:13px;color:#8A93A6;font-weight:600">Em 24 meses</div>
+          <div style="font-size:24px;font-weight:800;margin-top:10px;letter-spacing:-.02em">R$ {{ proj24 }}</div>
+          <div style="font-size:12.5px;color:#3B9A5F;font-weight:700;margin-top:4px">{{ proj24Pct }}</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ MOBILE BOTTOM BAR ============ -->
+  <nav class="bottombar">
+    <button class="nav-btn nav-dashboard" data-screen="dashboard" onClick="{{ navTo }}"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"></path><path d="M5 9v11h14V9"></path></svg><span>Início</span></button>
+    <button class="nav-btn nav-patrimonio" data-screen="patrimonio" onClick="{{ navTo }}"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path><circle cx="17" cy="14.5" r="1.2"></circle></svg><span>Patrimônio</span></button>
+    <button class="nav-btn nav-fluxo" data-screen="fluxo" onClick="{{ navTo }}"><svg viewBox="0 0 24 24"><path d="M4 8h13"></path><path d="M14 5l3 3-3 3"></path><path d="M20 16H7"></path><path d="M10 13l-3 3 3 3"></path></svg><span>Fluxo</span></button>
+    <button class="nav-btn nav-projecao" data-screen="projecao" onClick="{{ navTo }}"><svg viewBox="0 0 24 24"><path d="M4 16l5-5 4 3 7-8"></path><path d="M20 6h-4"></path><path d="M20 6v4"></path></svg><span>Projeção</span></button>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;telaInicial&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;patrimonio&quot;,&quot;fluxo&quot;,&quot;projecao&quot;],&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Geral&quot;},&quot;mostrarSaudacao&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Geral&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = {
+      currentScreen: props.telaInicial || 'dashboard',
+      aporteMensal: 1500,
+      fluxoFilter: 'Todos',
+      projMeses: 12
+    };
+  }
+
+  // ---------- data ----------
+  get months12(){ return ['set','out','nov','dez','jan','fev','mar','abr','mai','jun','jul','ago']; }
+  get nwSeries(){ return [251200,254300,257100,259800,258400,263200,267500,270100,273400,278900,281300,287450]; }
+  get bars(){ return {
+    m:['mar','abr','mai','jun','jul','ago'],
+    rec:[9800,10200,9600,11400,10800,11200],
+    desp:[7200,8100,7800,6900,8400,7960]
+  }; }
+  get ativosData(){ return [
+    {n:'Imóvel',c:'Imobilizado',v:180000,color:'#7BA8E8'},
+    {n:'Investimentos',c:'Renda fixa e variável',v:92000,color:'#9BC0F0'},
+    {n:'Reserva de emergência',c:'Conta / CDB',v:38000,color:'#8FD4A8'},
+    {n:'Veículo',c:'Imobilizado',v:24800,color:'#B6D9C4'},
+    {n:'Outros',c:'Diversos',v:8000,color:'#C9D2E4'}
+  ]; }
+  get passivosData(){ return [
+    {n:'Financiamento imóvel',c:'Longo prazo',v:42000},
+    {n:'Empréstimo pessoal',c:'Médio prazo',v:7000},
+    {n:'Cartão de crédito',c:'Curto prazo',v:6350}
+  ]; }
+  get transData(){ return [
+    {n:'Salário',c:'Renda',v:8500,d:'01 ago'},
+    {n:'Freelance design',c:'Renda',v:2700,d:'12 ago'},
+    {n:'Aluguel',c:'Moradia',v:-2200,d:'05 ago'},
+    {n:'Aporte investimento',c:'Investimento',v:-1500,d:'06 ago'},
+    {n:'Mercado',c:'Alimentação',v:-980,d:'08 ago'},
+    {n:'Restaurantes',c:'Alimentação',v:-420,d:'15 ago'},
+    {n:'Transporte',c:'Transporte',v:-310,d:'10 ago'},
+    {n:'Energia e água',c:'Contas',v:-280,d:'14 ago'},
+    {n:'Academia',c:'Saúde',v:-120,d:'03 ago'},
+    {n:'Streaming',c:'Lazer',v:-55,d:'02 ago'}
+  ]; }
+
+  // ---------- helpers ----------
+  fmt(n){ return Math.round(n).toLocaleString('pt-BR'); }
+  navTo = (e)=> this.setState({currentScreen: e.currentTarget.dataset.screen});
+  onAporte = (e)=> this.setState({aporteMensal: +e.target.value});
+  setFluxoFilter = (e)=> this.setState({fluxoFilter: e.currentTarget.dataset.cat});
+  setProjMeses = (e)=> this.setState({projMeses: +e.currentTarget.dataset.m});
+
+  smoothPath(pts){
+    let d='M'+pts[0][0].toFixed(1)+' '+pts[0][1].toFixed(1);
+    for(let i=1;i<pts.length;i++){
+      const x0=pts[i-1][0],y0=pts[i-1][1],x1=pts[i][0],y1=pts[i][1];
+      const xc=(x0+x1)/2,yc=(y0+y1)/2;
+      d+=' Q '+x0.toFixed(1)+' '+y0.toFixed(1)+' '+xc.toFixed(1)+' '+yc.toFixed(1);
+    }
+    const l=pts[pts.length-1];
+    d+=' L '+l[0].toFixed(1)+' '+l[1].toFixed(1);
+    return d;
+  }
+  svgEl(html, minH){
+    return React.createElement('div',{
+      style:{width:'100%',minHeight:minH+'px'},
+      dangerouslySetInnerHTML:{__html:html}
+    });
+  }
+
+  // ---------- charts ----------
+  netWorthChartHtml(){
+    const vals=this.nwSeries, W=700,H=240,padX=18,padT=22,padB=34;
+    const min=Math.min(...vals)*0.985, max=Math.max(...vals)*1.006, rng=max-min||1;
+    const pts=vals.map((v,i)=>[padX+(i/(vals.length-1))*(W-2*padX), padT+(1-(v-min)/rng)*(H-padT-padB)]);
+    const line=this.smoothPath(pts);
+    const area=line+` L ${pts[pts.length-1][0].toFixed(1)} ${H-padB} L ${pts[0][0].toFixed(1)} ${H-padB} Z`;
+    const labels=this.months12.map((m,i)=> i%2===1?`<text x='${pts[i][0].toFixed(1)}' y='${H-12}' font-size='12' fill='#B4BCCB' text-anchor='middle' font-family='Inter'>${m}</text>`:'').join('');
+    const last=pts[pts.length-1];
+    return `<svg viewBox='0 0 ${W} ${H}' style='width:100%;height:auto;display:block'>
+      <defs><linearGradient id='nwg' x1='0' y1='0' x2='0' y2='1'>
+        <stop offset='0' stop-color='#7BA8E8' stop-opacity='.28'/><stop offset='1' stop-color='#7BA8E8' stop-opacity='0'/>
+      </linearGradient></defs>
+      <path d='${area}' fill='url(#nwg)'/>
+      <path d='${line}' fill='none' stroke='#7BA8E8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/>
+      <circle cx='${last[0].toFixed(1)}' cy='${last[1].toFixed(1)}' r='5.5' fill='#7BA8E8' stroke='#fff' stroke-width='3'/>
+      ${labels}
+    </svg>`;
+  }
+  barsChartHtml(){
+    const b=this.bars, W=700,H=240,padX=14,padT=14,padB=30;
+    const maxV=Math.max(...b.rec,...b.desp)*1.12;
+    const gw=(W-2*padX)/b.m.length, bw=gw*0.26, gap=gw*0.12;
+    let rects='',labels='';
+    b.m.forEach((m,i)=>{
+      const cx=padX+gw*i+gw/2;
+      const hR=(b.rec[i]/maxV)*(H-padT-padB), hD=(b.desp[i]/maxV)*(H-padT-padB);
+      const x1=cx-bw-gap/2, x2=cx+gap/2;
+      rects+=`<rect x='${x1.toFixed(1)}' y='${(H-padB-hR).toFixed(1)}' width='${bw.toFixed(1)}' height='${hR.toFixed(1)}' rx='5' fill='#8FD4A8'/>`;
+      rects+=`<rect x='${x2.toFixed(1)}' y='${(H-padB-hD).toFixed(1)}' width='${bw.toFixed(1)}' height='${hD.toFixed(1)}' rx='5' fill='#F2A0A0'/>`;
+      labels+=`<text x='${cx.toFixed(1)}' y='${H-11}' font-size='12' fill='#B4BCCB' text-anchor='middle' font-family='Inter'>${m}</text>`;
+    });
+    return `<svg viewBox='0 0 ${W} ${H}' style='width:100%;height:auto;display:block'>${rects}${labels}</svg>`;
+  }
+  donutHtml(){
+    const segs=this.ativosData, total=segs.reduce((s,a)=>s+a.v,0);
+    const r=64, C=2*Math.PI*r; let off=0, circles='';
+    segs.forEach(s=>{
+      const dash=(s.v/total)*C;
+      circles+=`<circle cx='90' cy='90' r='${r}' fill='none' stroke='${s.color}' stroke-width='24' stroke-dasharray='${dash.toFixed(2)} ${(C-dash).toFixed(2)}' stroke-dashoffset='${(-off).toFixed(2)}' transform='rotate(-90 90 90)'/>`;
+      off+=dash;
+    });
+    return `<svg viewBox='0 0 180 180' style='width:100%;height:auto;display:block'>
+      ${circles}
+      <text x='90' y='84' font-size='11' fill='#8A93A6' text-anchor='middle' font-family='Inter' font-weight='600'>Ativos</text>
+      <text x='90' y='104' font-size='19' fill='#1A1F2B' text-anchor='middle' font-family='Inter' font-weight='800'>R$ ${(total/1000).toFixed(0)}k</text>
+    </svg>`;
+  }
+  projSeries(aporte){
+    const hist=this.nwSeries.slice(); const fut=[]; let cur=hist[hist.length-1];
+    for(let i=0;i<24;i++){ cur=cur*1.003+aporte; fut.push(cur); }
+    return {hist,fut};
+  }
+  projChartHtml(aporte){
+    const {hist,fut}=this.projSeries(aporte);
+    const all=hist.concat(fut), N=all.length, W=700,H=250,padX=18,padT=20,padB=34;
+    const min=Math.min(...all)*0.98, max=Math.max(...all)*1.02, rng=max-min||1;
+    const xy=(i,v)=>[padX+(i/(N-1))*(W-2*padX), padT+(1-(v-min)/rng)*(H-padT-padB)];
+    const histPts=hist.map((v,i)=>xy(i,v));
+    const futPts=[histPts[histPts.length-1]].concat(fut.map((v,i)=>xy(hist.length+i,v)));
+    const histLine=this.smoothPath(histPts);
+    const futLine=this.smoothPath(futPts);
+    const area=futLine+` L ${futPts[futPts.length-1][0].toFixed(1)} ${H-padB} L ${histPts[0][0].toFixed(1)} ${H-padB} Z`;
+    const areaH=histLine+` L ${histPts[histPts.length-1][0].toFixed(1)} ${H-padB} L ${histPts[0][0].toFixed(1)} ${H-padB} Z`;
+    const endF=futPts[futPts.length-1];
+    return `<svg viewBox='0 0 ${W} ${H}' style='width:100%;height:auto;display:block'>
+      <defs><linearGradient id='pg' x1='0' y1='0' x2='0' y2='1'>
+        <stop offset='0' stop-color='#8FD4A8' stop-opacity='.22'/><stop offset='1' stop-color='#8FD4A8' stop-opacity='0'/></linearGradient>
+      <linearGradient id='pgh' x1='0' y1='0' x2='0' y2='1'>
+        <stop offset='0' stop-color='#7BA8E8' stop-opacity='.18'/><stop offset='1' stop-color='#7BA8E8' stop-opacity='0'/></linearGradient></defs>
+      <path d='${areaH}' fill='url(#pgh)'/>
+      <path d='${area}' fill='url(#pg)'/>
+      <path d='${histLine}' fill='none' stroke='#7BA8E8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/>
+      <path d='${futLine}' fill='none' stroke='#3B9A5F' stroke-width='3' stroke-dasharray='2 8' stroke-linecap='round' stroke-linejoin='round'/>
+      <circle cx='${endF[0].toFixed(1)}' cy='${endF[1].toFixed(1)}' r='5.5' fill='#3B9A5F' stroke='#fff' stroke-width='3'/>
+    </svg>`;
+  }
+
+  chipStyle(active){
+    const base='flex:none;white-space:nowrap;font-family:inherit;font-size:13px;font-weight:600;padding:9px 15px;border-radius:999px;cursor:pointer;transition:.15s;border:1px solid ';
+    return active ? base+'#7BA8E8;background:#7BA8E8;color:#fff' : base+'#E4EAF3;background:#fff;color:#8A93A6';
+  }
+
+  renderVals(){
+    const nw=this.nwSeries, cur=nw[nw.length-1], prev=nw[nw.length-2];
+    const totAtivos=this.ativosData.reduce((s,a)=>s+a.v,0);
+    const totPassivos=this.passivosData.reduce((s,a)=>s+a.v,0);
+    const maxA=Math.max(...this.ativosData.map(a=>a.v));
+    const maxP=Math.max(...this.passivosData.map(p=>p.v));
+    const changeAbs=cur-prev, changePct=(changeAbs/prev*100);
+
+    // fluxo
+    const entradas=this.transData.filter(t=>t.v>0).reduce((s,t)=>s+t.v,0);
+    const saidas=this.transData.filter(t=>t.v<0).reduce((s,t)=>s-t.v,0);
+    const saldo=entradas-saidas;
+    const cats=['Todos',...Array.from(new Set(this.transData.map(t=>t.c)))];
+    const catColor=(c)=> c==='Renda'||c==='Investimento' ? {bg:'#EAF7EF',fg:'#3B9A5F'} : {bg:'#FCEDED',fg:'#D45B5B'};
+    const filtered=this.transData.filter(t=> this.state.fluxoFilter==='Todos' || t.c===this.state.fluxoFilter);
+
+    // projection
+    const ap=this.state.aporteMensal;
+    const {fut}=this.projSeries(ap);
+    const projPct=(v)=> '+'+((v-cur)/cur*100).toFixed(0)+'%';
+
+    return {
+      currentScreen:this.state.currentScreen,
+      navTo:this.navTo,
+      saudacao:(this.props.mostrarSaudacao??true) ? 'Bom te ver de novo' : 'Visão geral',
+      mesAtual:'Agosto de 2026',
+
+      nwStr:this.fmt(cur),
+      nwChangePct:'+'+changePct.toFixed(1)+'%',
+      nwChangeAbs:'+R$ '+this.fmt(changeAbs),
+      ativosStr:this.fmt(totAtivos),
+      passivosStr:this.fmt(totPassivos),
+      sobraStr:this.fmt(3240),
+
+      netWorthChart:this.svgEl(this.netWorthChartHtml(),200),
+      barsChart:this.svgEl(this.barsChartHtml(),200),
+      donutChart:this.svgEl(this.donutHtml(),180),
+
+      donutLegend:this.ativosData.map(a=>({n:a.n,color:a.color,vStr:this.fmt(a.v),pct:(a.v/totAtivos*100).toFixed(0)+'%'})),
+      ativos:this.ativosData.map(a=>({n:a.n,c:a.c,vStr:this.fmt(a.v),bar:(a.v/maxA*100).toFixed(0)+'%'})),
+      passivos:this.passivosData.map(p=>({n:p.n,c:p.c,vStr:this.fmt(p.v),bar:(p.v/maxP*100).toFixed(0)+'%'})),
+
+      // fluxo
+      saldoStr:this.fmt(saldo),
+      entradasStr:this.fmt(entradas),
+      saidasStr:this.fmt(saidas),
+      fluxoChips:cats.map(c=>({key:c,style:this.chipStyle(this.state.fluxoFilter===c)})),
+      setFluxoFilter:this.setFluxoFilter,
+      transacoesFiltradas:filtered.map(t=>{
+        const cc=catColor(t.c);
+        return {n:t.n,c:t.c,d:t.d,initial:t.c[0].toUpperCase(),
+          iconBg:cc.bg,iconColor:cc.fg,
+          color:t.v>0?'#3B9A5F':'#D45B5B',
+          valorStr:(t.v>0?'+R$ ':'−R$ ')+this.fmt(Math.abs(t.v))};
+      }),
+
+      // projecao
+      projChart:this.svgEl(this.projChartHtml(ap),230),
+      aporteMensal:ap,
+      aporteStr:this.fmt(ap),
+      onAporte:this.onAporte,
+      projMeses:this.state.projMeses,
+      setProjMeses:this.setProjMeses,
+      proj6:this.fmt(fut[5]), proj6Pct:projPct(fut[5]),
+      proj12:this.fmt(fut[11]), proj12Pct:projPct(fut[11]),
+      proj24:this.fmt(fut[23]), proj24Pct:projPct(fut[23])
+    };
+  }
+}
+</script>
+</body>
+</html>
