@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/*
+ * Paleta portada de Patrimonio.dc.html (referência visual).
+ * Tailwind v4: o tema vive aqui, não há tailwind.config.js.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* superfícies */
+  --color-canvas: #f7f9fc;
+  --color-surface: #ffffff;
+
+  /* texto */
+  --color-ink: #1a1f2b;
+  --color-muted: #8a93a6;
+  --color-axis: #b4bccb;
+
+  /* azul */
+  --color-blue: #7ba8e8;
+  --color-blue-strong: #5b8fd9;
+  --color-blue-light: #9bc0f0;
+  --color-blue-hover: #3a6fc0;
+  --color-blue-soft: #eef4fc;
+  --color-blue-tint: #f5f9fe;
+
+  /* verde */
+  --color-green: #8fd4a8;
+  --color-green-strong: #3b9a5f;
+  --color-green-light: #b6d9c4;
+  --color-green-soft: #eaf7ef;
+
+  /* coral */
+  --color-coral: #f2a0a0;
+  --color-coral-strong: #d45b5b;
+  --color-coral-soft: #fceded;
+
+  /* neutros / bordas */
+  --color-slate-soft: #c9d2e4;
+  --color-line: #edf1f7;
+  --color-line-soft: #f0f3f8;
+  --color-line-strong: #e4eaf3;
+
+  /* sombra dos cards */
+  --shadow-card: 0 2px 12px rgba(26, 31, 43, 0.05);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* slider de aporte (tela Projeção) — replica o input[type=range] do design */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--color-line-strong);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-blue);
+  border: 4px solid #fff;
+  box-shadow: 0 2px 8px rgba(91, 143, 217, 0.4);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-blue);
+  border: 4px solid #fff;
+  box-shadow: 0 2px 8px rgba(91, 143, 217, 0.4);
+  cursor: pointer;
 }
