@@ -4,8 +4,14 @@ import type { Database } from "./database.types";
 import { readSupabaseEnv } from "./env";
 
 const PUBLIC_PATHS = ["/login", "/signup"];
-/** Rotas públicas que NÃO devem redirecionar um usuário já autenticado. */
-const AUTH_CALLBACK_PATHS = ["/auth/confirm"];
+/**
+ * Rotas alcançáveis em qualquer estado de sessão — nem exigem login, nem
+ * redirecionam quem já está logado.
+ *
+ * `/diagnostico` é temporário: precisa abrir justamente quando a autenticação
+ * está quebrada. Remover junto com src/app/diagnostico.
+ */
+const ALWAYS_ALLOWED_PATHS = ["/auth/confirm", "/diagnostico"];
 
 export async function updateSession(request: NextRequest) {
   try {
@@ -46,11 +52,10 @@ async function refreshSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isCallbackPath = AUTH_CALLBACK_PATHS.some((path) => pathname.startsWith(path));
+  const isAlwaysAllowed = ALWAYS_ALLOWED_PATHS.some((path) => pathname.startsWith(path));
   const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 
-  // O callback de confirmação precisa rodar em qualquer estado de sessão.
-  if (isCallbackPath) {
+  if (isAlwaysAllowed) {
     return supabaseResponse;
   }
 
