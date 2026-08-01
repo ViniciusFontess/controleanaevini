@@ -84,6 +84,13 @@ function translateAuthError(message: string): string {
   if (m.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
   if (m.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
   if (m.includes("user already registered")) return "Já existe uma conta com esse e-mail.";
+  if (m.includes("is invalid") && m.includes("email")) {
+    // O Supabase recusa domínios sem MX (example.com, domínios inventados).
+    return "E-mail inválido — use um endereço de um domínio que receba e-mails de verdade.";
+  }
+  if (m.includes("signups not allowed") || m.includes("signup is disabled")) {
+    return "Cadastro desativado neste projeto Supabase (Authentication → Providers).";
+  }
   if (m.includes("password")) return "Senha inválida: use pelo menos 6 caracteres.";
   if (m.includes("rate limit") || m.includes("too many"))
     return "Muitas tentativas. Aguarde um instante e tente de novo.";
