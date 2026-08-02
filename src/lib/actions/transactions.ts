@@ -133,6 +133,66 @@ function buildInstallmentRows(input: {
 }
 
 /**
+ * Edita um lançamento. Recalcula a data de saída do dinheiro, porque ela depende
+ * da data da compra e de qual conta/cartão foi escolhido — trocar "Onde" de
+ * cartão para conta é justamente como se corrige um pagamento de fatura que
+ * tinha sido lançado como compra.
+ *
+ * Numa parcela, edita só aquela parcela: mexer no grupo inteiro a partir de uma
+ * linha esconderia mudanças em meses que o usuário não está vendo.
+ */
+export async function updateTransaction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const id = readText(formData, "id");
+  if (!id) return { error: "Lançamento não identificado." };
+
+  const description = readText(formData, "description");
+  const category = readText(formData, "category");
+  const direction = readText(formData, "direction");
+  const accountId = readText(formData, "account_id");
+  const amount = readAmount(formData, "amount");
+  const occurredOn = readText(formData, "occurred_on");
+
+  if (!description) return { error: "Descreva a transação." };
+  if (!category) return { error: "Informe uma categoria." };
+  if (amount === null) return { error: "Informe um valor numérico válido." };
+  if (amount <= 0) return { error: "O valor precisa ser maior que zero." };
+  if (!occurredOn) return { error: "Informe a data." };
+  if (direction !== "income" && direction !== "expense") {
+    return { error: "Selecione se é receita ou despesa." };
+  }
+
+  const { supabase, userId } = await requireUser();
+  const cashDate = await resolveCashDate(supabase, userId, accountId || null, occurredOn);
+
+  const { error } = await supabase
+    .from("transactions")
+    .update({
+      description,
+      category,
+      amount: (direction === "income" ? 1 : -1) * amount,
+      occurred_on: occurredOn,
+      cash_date: cashDate,
+      account_id: accountId || null,
+    })
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (error) return { error: `Não foi possível atualizar: ${error.message}` };
+
+  revalidatePath("/", "layout");
+  return {
+    ok: true,
+    notice:
+      cashDate === occurredOn
+        ? "Atualizado."
+        : `Atualizado — o dinheiro sai em ${cashDate.split("-").reverse().join("/")}.`,
+  };
+}
+
+/**
  * Repete um lançamento no mês seguinte, para o que é recorrente mas muda de
  * valor (a fatura, a conta de luz) e você quer conferir antes de confirmar.
  *

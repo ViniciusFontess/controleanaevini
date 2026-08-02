@@ -12,6 +12,7 @@ export function TransactionActions({
   description,
   isFixed,
   isInstallment,
+  onEdit,
 }: {
   id: string;
   description: string;
@@ -19,6 +20,7 @@ export function TransactionActions({
   isFixed: boolean;
   /** parcela de uma compra: as seguintes já existem, duplicar criaria lixo */
   isInstallment: boolean;
+  onEdit?: () => void;
 }) {
   const [promoteState, promoteAction] = useActionState(promoteToRecurrence, EMPTY_FORM_STATE);
   const [duplicateState, duplicateAction] = useActionState(
@@ -31,6 +33,29 @@ export function TransactionActions({
   return (
     <div className="flex flex-none flex-col items-end gap-1">
       <div className="flex items-center gap-0.5">
+        {onEdit ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Editar ${description}`}
+            title="Editar"
+            className="rounded-lg p-1.5 text-muted transition hover:bg-line-soft hover:text-blue-strong"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-[17px]"
+              aria-hidden="true"
+            >
+              <path d="M4 20h4l10-10a2.5 2.5 0 0 0-4-4L4 16v4z" />
+            </svg>
+          </button>
+        ) : null}
+
         {isFixed ? (
           <span
             title="Já é um gasto fixo"

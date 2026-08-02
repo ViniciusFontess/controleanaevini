@@ -24,8 +24,13 @@ export type CashEntry = {
   description: string;
   category: string;
   amount: number;
+  /** data da compra — diferente de `cash_date` quando é cartão */
+  occurredOn: string;
+  accountId: string | null;
   isFixed: boolean;
   isInstallment: boolean;
+  /** "3/12" quando é parcela, para o formulário avisar o que está editando */
+  installmentLabel: string | null;
 };
 
 export type Cashflow = {
@@ -61,7 +66,7 @@ export async function getCashflow(days = 60): Promise<Cashflow> {
     supabase
       .from("transactions")
       .select(
-        "id, description, category, amount, cash_date, recurrence_id, occurred_on, installment_group",
+        "id, description, category, amount, cash_date, recurrence_id, occurred_on, account_id, installment_group, installment_number, installment_total",
       )
       .eq("user_id", userId)
       .gte("cash_date", start)
@@ -83,8 +88,14 @@ export async function getCashflow(days = 60): Promise<Cashflow> {
       description: t.description,
       category: t.category,
       amount: Number(t.amount) || 0,
+      occurredOn: t.occurred_on,
+      accountId: t.account_id,
       isFixed: t.recurrence_id !== null,
       isInstallment: t.installment_group !== null,
+      installmentLabel:
+        t.installment_number && t.installment_total
+          ? `${t.installment_number}/${t.installment_total}`
+          : null,
     };
     entriesByDate.set(t.cash_date, [...(entriesByDate.get(t.cash_date) ?? []), entry]);
   }

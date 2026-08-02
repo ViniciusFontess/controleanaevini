@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ConfirmOccurrence } from "@/components/caixa/confirm-occurrence";
 import { NewTransactionPanel } from "@/components/fluxo/transaction-form";
 import { TransactionActions } from "@/components/fluxo/transaction-actions";
+import { EditableTransaction } from "@/components/fluxo/editable-transaction";
 import { Card } from "@/components/ui/card";
 import { RecurrencePanel } from "@/components/caixa/recurrence-panel";
 import { getCashflow } from "@/lib/data/cashflow";
@@ -166,25 +167,41 @@ export default async function CaixaPage() {
                     key={entry.id}
                     className="mt-2.5 flex items-center justify-between gap-3 border-t border-line-soft pt-2.5"
                   >
-                    <div className="min-w-0">
-                      <div className="truncate text-[13.5px] font-semibold">
-                        {entry.description}
-                      </div>
-                      <div className="text-[11.5px] text-muted">{entry.category}</div>
-                    </div>
-                    <span
-                      className={`text-[13.5px] font-bold whitespace-nowrap ${
-                        entry.amount >= 0 ? "text-green-strong" : "text-coral-strong"
-                      }`}
+                    <EditableTransaction
+                      transaction={{
+                        id: entry.id,
+                        description: entry.description,
+                        category: entry.category,
+                        amount: entry.amount,
+                        occurredOn: entry.occurredOn,
+                        accountId: entry.accountId,
+                        installmentLabel: entry.installmentLabel,
+                      }}
+                      accounts={payableAccounts}
+                      renderActions={(startEditing) => (
+                        <TransactionActions
+                          id={entry.id}
+                          description={entry.description}
+                          isFixed={entry.isFixed}
+                          isInstallment={entry.isInstallment}
+                          onEdit={startEditing}
+                        />
+                      )}
                     >
-                      {entry.amount >= 0 ? "+" : "−"}R$ {fmt(Math.abs(entry.amount))}
-                    </span>
-                    <TransactionActions
-                      id={entry.id}
-                      description={entry.description}
-                      isFixed={entry.isFixed}
-                      isInstallment={entry.isInstallment}
-                    />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13.5px] font-semibold">
+                          {entry.description}
+                        </div>
+                        <div className="text-[11.5px] text-muted">{entry.category}</div>
+                      </div>
+                      <span
+                        className={`text-[13.5px] font-bold whitespace-nowrap ${
+                          entry.amount >= 0 ? "text-green-strong" : "text-coral-strong"
+                        }`}
+                      >
+                        {entry.amount >= 0 ? "+" : "−"}R$ {fmt(Math.abs(entry.amount))}
+                      </span>
+                    </EditableTransaction>
                   </div>
                 ))}
 

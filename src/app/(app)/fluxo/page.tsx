@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NewTransactionPanel } from "@/components/fluxo/transaction-form";
 import { QuickEntry } from "@/components/fluxo/quick-entry";
 import { TransactionActions } from "@/components/fluxo/transaction-actions";
+import { EditableTransaction } from "@/components/fluxo/editable-transaction";
 import { Card } from "@/components/ui/card";
 import { getAccounts } from "@/lib/data/accounts";
 import { isoDate, monthKey, monthSummary } from "@/lib/data/finance";
@@ -117,38 +118,61 @@ export default async function FluxoPage({
             const isIncome = Number(transaction.amount) >= 0;
             return (
               <Card key={transaction.id} className="flex items-center gap-3.5 px-4 py-3.5">
-                <div
-                  className={`flex size-11 flex-none items-center justify-center rounded-[13px] text-[16px] font-extrabold ${
-                    isIncome ? "bg-green-soft text-green-strong" : "bg-coral-soft text-coral-strong"
-                  }`}
-                  aria-hidden="true"
+                <EditableTransaction
+                  transaction={{
+                    id: transaction.id,
+                    description: transaction.description,
+                    category: transaction.category,
+                    amount: Number(transaction.amount),
+                    occurredOn: transaction.occurred_on,
+                    accountId: transaction.account_id,
+                    installmentLabel:
+                      transaction.installment_number && transaction.installment_total
+                        ? `${transaction.installment_number}/${transaction.installment_total}`
+                        : null,
+                  }}
+                  accounts={payableAccounts}
+                  renderActions={(startEditing) => (
+                    <TransactionActions
+                      id={transaction.id}
+                      description={transaction.description}
+                      isFixed={transaction.recurrence_id !== null}
+                      isInstallment={transaction.installment_group !== null}
+                      onEdit={startEditing}
+                    />
+                  )}
                 >
-                  {transaction.category.charAt(0).toUpperCase()}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14.5px] font-semibold">
-                    {transaction.description}
+                  <div
+                    className={`flex size-11 flex-none items-center justify-center rounded-[13px] text-[16px] font-extrabold ${
+                      isIncome
+                        ? "bg-green-soft text-green-strong"
+                        : "bg-coral-soft text-coral-strong"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {transaction.category.charAt(0).toUpperCase()}
                   </div>
-                  <div className="mt-0.5 text-[12px] text-muted">
-                    {transaction.category} · {fmtDayMonth(transaction.occurred_on)}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[14.5px] font-semibold">
+                      {transaction.description}
+                    </div>
+                    <div className="mt-0.5 text-[12px] text-muted">
+                      {transaction.category} · {fmtDayMonth(transaction.occurred_on)}
+                      {transaction.cash_date !== transaction.occurred_on
+                        ? ` · sai ${fmtDayMonth(transaction.cash_date)}`
+                        : ""}
+                    </div>
                   </div>
-                </div>
 
-                <div
-                  className={`text-[15.5px] font-bold whitespace-nowrap ${
-                    isIncome ? "text-green-strong" : "text-coral-strong"
-                  }`}
-                >
-                  {isIncome ? "+" : "−"}R$ {fmt(Math.abs(Number(transaction.amount)))}
-                </div>
-
-                <TransactionActions
-                  id={transaction.id}
-                  description={transaction.description}
-                  isFixed={transaction.recurrence_id !== null}
-                  isInstallment={transaction.installment_group !== null}
-                />
+                  <div
+                    className={`text-[15.5px] font-bold whitespace-nowrap ${
+                      isIncome ? "text-green-strong" : "text-coral-strong"
+                    }`}
+                  >
+                    {isIncome ? "+" : "−"}R$ {fmt(Math.abs(Number(transaction.amount)))}
+                  </div>
+                </EditableTransaction>
               </Card>
             );
           })
