@@ -4,6 +4,10 @@ import {
   cashDateFor,
   clampDay,
   installmentPlan,
+  occurrencesBetween,
+  openInvoiceTotal,
+  runningBalance,
+  type RecurrenceLike,
   monthKey,
   monthRange,
   monthSummary,
@@ -187,4 +191,109 @@ test("installmentPlan encurta o dia em mês curto, nas duas datas", () => {
 test("installmentPlan recusa contagem inválida", () => {
   assert.throws(() => installmentPlan(100, 1, "2026-10-05", "2026-10-25"));
   assert.throws(() => installmentPlan(100, 0, "2026-10-05", "2026-10-25"));
+});
+
+// ---------- recorrências ----------
+
+const salario: RecurrenceLike = {
+  day_of_month: 5,
+  start_date: "2026-01-01",
+  end_date: null,
+  active: true,
+};
+
+test("occurrencesBetween devolve um dia por mês dentro da janela", () => {
+  assert.deepEqual(occurrencesBetween(salario, "2026-10-01", "2026-12-31"), [
+    "2026-10-05",
+    "2026-11-05",
+    "2026-12-05",
+  ]);
+});
+
+test("occurrencesBetween respeita os limites da janela", () => {
+  assert.deepEqual(occurrencesBetween(salario, "2026-10-06", "2026-11-04"), []);
+});
+
+test("occurrencesBetween encurta o dia em mês curto", () => {
+  assert.deepEqual(
+    occurrencesBetween({ ...salario, day_of_month: 31 }, "2026-02-01", "2026-02-28"),
+    ["2026-02-28"],
+  );
+});
+
+test("occurrencesBetween ignora inativa, encerrada ou não iniciada", () => {
+  assert.deepEqual(
+    occurrencesBetween({ ...salario, active: false }, "2026-10-01", "2026-12-31"),
+    [],
+  );
+  assert.deepEqual(
+    occurrencesBetween({ ...salario, end_date: "2026-10-31" }, "2026-10-01", "2026-12-31"),
+    ["2026-10-05"],
+  );
+  assert.deepEqual(
+    occurrencesBetween({ ...salario, start_date: "2026-11-15" }, "2026-10-01", "2026-12-31"),
+    ["2026-12-05"],
+  );
+});
+
+// ---------- saldo correndo e fatura em aberto ----------
+
+test("runningBalance acumula dia a dia e mantém dias vazios", () => {
+  const days = runningBalance(
+    1000,
+    [
+      { date: "2026-10-02", amount: 500 },
+      { date: "2026-10-02", amount: -200 },
+      { date: "2026-10-04", amount: -100 },
+    ],
+    "2026-10-01",
+    "2026-10-04",
+  );
+
+  assert.deepEqual(
+    days.map((d) => [d.date, d.balance]),
+    [
+      ["2026-10-01", 1000],
+      ["2026-10-02", 1300],
+      ["2026-10-03", 1300],
+      ["2026-10-04", 1200],
+    ],
+  );
+  assert.equal(days[1].entradas, 500);
+  assert.equal(days[1].saidas, 200);
+});
+
+test("runningBalance com janela invertida devolve vazio", () => {
+  assert.deepEqual(runningBalance(0, [], "2026-10-02", "2026-10-01"), []);
+});
+
+test("runningBalance ignora movimento fora da janela", () => {
+  const days = runningBalance(
+    0,
+    [{ date: "2026-09-30", amount: 999 }],
+    "2026-10-01",
+    "2026-10-01",
+  );
+  assert.equal(days[0].balance, 0);
+});
+
+test("openInvoiceTotal soma só o que ainda não venceu", () => {
+  assert.equal(
+    openInvoiceTotal(
+      [
+        { amount: -100, cash_date: "2026-10-25" },
+        { amount: -50, cash_date: "2026-11-25" },
+        { amount: -900, cash_date: "2026-09-25" },
+      ],
+      "2026-10-01",
+    ),
+    150,
+  );
+});
+
+test("openInvoiceTotal considera o próprio dia do vencimento em aberto", () => {
+  assert.equal(
+    openInvoiceTotal([{ amount: -100, cash_date: "2026-10-25" }], "2026-10-25"),
+    100,
+  );
 });

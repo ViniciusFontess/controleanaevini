@@ -166,6 +166,109 @@ export function cashDateFor(
   return isoDate(new Date(Date.UTC(year, monthIndex, clampDay(year, monthIndex, dueDay))));
 }
 
+export type RecurrenceLike = {
+  day_of_month: number;
+  start_date: string;
+  end_date: string | null;
+  active: boolean;
+};
+
+/**
+ * Datas em que a recorrência é esperada dentro de [startISO, endISO].
+ *
+ * Só projeta — nunca cria transação. Uma ocorrência prevista vira fato quando o
+ * usuário confirma, para que a projeção jamais afirme que entrou dinheiro que
+ * não entrou.
+ */
+export function occurrencesBetween(
+  recurrence: RecurrenceLike,
+  startISO: string,
+  endISO: string,
+): string[] {
+  if (!recurrence.active || startISO > endISO) return [];
+
+  const start = new Date(`${startISO}T00:00:00Z`);
+  const end = new Date(`${endISO}T00:00:00Z`);
+
+  const dates: string[] = [];
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+
+  while (cursor <= end) {
+    const year = cursor.getUTCFullYear();
+    const monthIndex = cursor.getUTCMonth();
+    const iso = isoDate(
+      new Date(Date.UTC(year, monthIndex, clampDay(year, monthIndex, recurrence.day_of_month))),
+    );
+
+    const withinWindow = iso >= startISO && iso <= endISO;
+    const started = iso >= recurrence.start_date;
+    const notEnded = !recurrence.end_date || iso <= recurrence.end_date;
+
+    if (withinWindow && started && notEnded) dates.push(iso);
+
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  return dates;
+}
+
+export type CashMovement = { date: string; amount: number };
+export type CashDay = {
+  date: string;
+  entradas: number;
+  saidas: number;
+  balance: number;
+};
+
+/** Saldo dia a dia na janela, incluindo os dias sem nenhum movimento. */
+export function runningBalance(
+  openingBalance: number,
+  movements: readonly CashMovement[],
+  startISO: string,
+  endISO: string,
+): CashDay[] {
+  if (startISO > endISO) return [];
+
+  const byDate = new Map<string, { entradas: number; saidas: number }>();
+  for (const movement of movements) {
+    if (movement.date < startISO || movement.date > endISO) continue;
+
+    const bucket = byDate.get(movement.date) ?? { entradas: 0, saidas: 0 };
+    const value = Number(movement.amount) || 0;
+    if (value >= 0) bucket.entradas += value;
+    else bucket.saidas += -value;
+    byDate.set(movement.date, bucket);
+  }
+
+  const days: CashDay[] = [];
+  let balance = openingBalance;
+  const cursor = new Date(`${startISO}T00:00:00Z`);
+  const end = new Date(`${endISO}T00:00:00Z`);
+
+  while (cursor <= end) {
+    const date = isoDate(cursor);
+    const { entradas, saidas } = byDate.get(date) ?? { entradas: 0, saidas: 0 };
+    balance += entradas - saidas;
+    days.push({ date, entradas, saidas, balance });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return days;
+}
+
+/**
+ * Fatura em aberto: compras cujo dinheiro ainda não saiu, devolvida positiva
+ * porque é dívida. O próprio dia do vencimento ainda conta como em aberto.
+ */
+export function openInvoiceTotal(
+  cardTransactions: readonly { amount: number; cash_date: string }[],
+  todayISO: string,
+): number {
+  return cardTransactions
+    .filter((t) => t.cash_date >= todayISO)
+    .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+}
+
 export type Installment = {
   number: number;
   amount: number;
