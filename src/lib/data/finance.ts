@@ -133,3 +133,85 @@ export function monthRange(date: Date): { start: string; end: string } {
 export function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
+
+/** Último dia válido do mês — para dias 29–31 em meses curtos. */
+export function clampDay(year: number, monthIndex: number, day: number): number {
+  const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+  return Math.min(day, lastDay);
+}
+
+/**
+ * Data em que o dinheiro sai da conta por uma compra no cartão.
+ *
+ * Compra até o dia do fechamento entra na fatura daquele mês; a partir do dia
+ * seguinte, na do mês seguinte. O vencimento cai no mês do fechamento, ou no
+ * seguinte quando `dueDay` vem antes de `closingDay` no calendário (fecha 28,
+ * vence 5).
+ */
+export function cashDateFor(
+  purchaseDate: string,
+  closingDay: number,
+  dueDay: number,
+): string {
+  const purchase = new Date(`${purchaseDate}T00:00:00Z`);
+  const afterClosing = purchase.getUTCDate() > closingDay;
+
+  const closingMonthIndex = purchase.getUTCMonth() + (afterClosing ? 1 : 0);
+  const dueMonthIndex = closingMonthIndex + (dueDay >= closingDay ? 0 : 1);
+
+  const anchor = new Date(Date.UTC(purchase.getUTCFullYear(), dueMonthIndex, 1));
+  const year = anchor.getUTCFullYear();
+  const monthIndex = anchor.getUTCMonth();
+
+  return isoDate(new Date(Date.UTC(year, monthIndex, clampDay(year, monthIndex, dueDay))));
+}
+
+export type Installment = {
+  number: number;
+  amount: number;
+  /** competência da parcela — a compra deslocada N−1 meses */
+  occurredOn: string;
+  /** quando o dinheiro sai por esta parcela */
+  cashDate: string;
+};
+
+/** Soma `months` meses a uma data ISO, encurtando o dia em meses curtos. */
+function addMonths(isoValue: string, months: number): string {
+  const base = new Date(`${isoValue}T00:00:00Z`);
+  const anchor = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + months, 1));
+  const year = anchor.getUTCFullYear();
+  const monthIndex = anchor.getUTCMonth();
+
+  return isoDate(
+    new Date(Date.UTC(year, monthIndex, clampDay(year, monthIndex, base.getUTCDate()))),
+  );
+}
+
+/**
+ * Divide uma compra em `count` parcelas mensais.
+ *
+ * A sobra de centavos vai toda na primeira parcela, não espalhada: assim a soma
+ * fecha exatamente com o total e o arredondamento aparece num lugar só — que é
+ * também como as operadoras costumam fazer.
+ */
+export function installmentPlan(
+  totalAmount: number,
+  count: number,
+  purchaseDate: string,
+  firstCashDate: string,
+): Installment[] {
+  if (!Number.isInteger(count) || count < 2) {
+    throw new Error("Parcelamento exige pelo menos 2 parcelas.");
+  }
+
+  const totalCents = Math.round(totalAmount * 100);
+  const baseCents = Math.floor(totalCents / count);
+  const remainder = totalCents - baseCents * count;
+
+  return Array.from({ length: count }, (_, i) => ({
+    number: i + 1,
+    amount: (baseCents + (i === 0 ? remainder : 0)) / 100,
+    occurredOn: addMonths(purchaseDate, i),
+    cashDate: addMonths(firstCashDate, i),
+  }));
+}

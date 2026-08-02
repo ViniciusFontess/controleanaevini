@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  cashDateFor,
+  clampDay,
+  installmentPlan,
   monthKey,
   monthRange,
   monthSummary,
@@ -103,4 +106,85 @@ test("monthKey e monthRange usam UTC e viram o ano corretamente", () => {
     start: "2026-12-01",
     end: "2026-12-31",
   });
+});
+
+// ---------- ciclo da fatura ----------
+
+test("clampDay encurta o dia para o último do mês", () => {
+  assert.equal(clampDay(2026, 1, 31), 28); // fevereiro/2026
+  assert.equal(clampDay(2024, 1, 31), 29); // bissexto
+  assert.equal(clampDay(2026, 3, 31), 30); // abril
+  assert.equal(clampDay(2026, 0, 15), 15);
+});
+
+test("cashDateFor: compra até o fechamento vence no mesmo mês", () => {
+  // cartão do usuário: fecha 18, vence 25
+  assert.equal(cashDateFor("2026-10-05", 18, 25), "2026-10-25");
+  assert.equal(cashDateFor("2026-10-18", 18, 25), "2026-10-25");
+});
+
+test("cashDateFor: compra após o fechamento pula para a fatura seguinte", () => {
+  assert.equal(cashDateFor("2026-10-19", 18, 25), "2026-11-25");
+  assert.equal(cashDateFor("2026-10-31", 18, 25), "2026-11-25");
+});
+
+test("cashDateFor vira o ano", () => {
+  assert.equal(cashDateFor("2026-12-20", 18, 25), "2027-01-25");
+});
+
+test("cashDateFor com vencimento antes do fechamento cai no mês seguinte", () => {
+  // fecha 28, vence 5
+  assert.equal(cashDateFor("2026-10-10", 28, 5), "2026-11-05");
+  assert.equal(cashDateFor("2026-10-29", 28, 5), "2026-12-05");
+});
+
+test("cashDateFor encurta vencimento em mês curto", () => {
+  assert.equal(cashDateFor("2026-01-20", 18, 31), "2026-02-28");
+});
+
+// ---------- parcelamento ----------
+
+test("installmentPlan divide igual quando não há sobra", () => {
+  const plan = installmentPlan(1200, 12, "2026-10-19", "2026-11-25");
+  assert.equal(plan.length, 12);
+  assert.ok(plan.every((p) => p.amount === 100));
+  assert.equal(plan[0].cashDate, "2026-11-25");
+  assert.equal(plan[11].cashDate, "2027-10-25");
+});
+
+test("installmentPlan espalha a competência um mês por parcela", () => {
+  const plan = installmentPlan(1200, 3, "2026-10-19", "2026-11-25");
+  assert.deepEqual(
+    plan.map((p) => p.occurredOn),
+    ["2026-10-19", "2026-11-19", "2026-12-19"],
+  );
+});
+
+test("installmentPlan põe a sobra de centavos na primeira parcela", () => {
+  const plan = installmentPlan(1000, 3, "2026-10-05", "2026-10-25");
+  assert.deepEqual(
+    plan.map((p) => p.amount),
+    [333.34, 333.33, 333.33],
+  );
+  assert.equal(
+    plan.reduce((s, p) => s + p.amount, 0),
+    1000,
+  );
+});
+
+test("installmentPlan encurta o dia em mês curto, nas duas datas", () => {
+  const plan = installmentPlan(300, 3, "2026-12-31", "2026-12-31");
+  assert.deepEqual(
+    plan.map((p) => p.cashDate),
+    ["2026-12-31", "2027-01-31", "2027-02-28"],
+  );
+  assert.deepEqual(
+    plan.map((p) => p.occurredOn),
+    ["2026-12-31", "2027-01-31", "2027-02-28"],
+  );
+});
+
+test("installmentPlan recusa contagem inválida", () => {
+  assert.throws(() => installmentPlan(100, 1, "2026-10-05", "2026-10-25"));
+  assert.throws(() => installmentPlan(100, 0, "2026-10-05", "2026-10-25"));
 });
