@@ -1,14 +1,20 @@
 import Link from "next/link";
 import { ConfirmOccurrence } from "@/components/caixa/confirm-occurrence";
 import { Card } from "@/components/ui/card";
+import { RecurrencePanel } from "@/components/caixa/recurrence-panel";
 import { getCashflow } from "@/lib/data/cashflow";
+import { getRecurrences } from "@/lib/data/recurrences";
 import { getAccounts, splitAccounts } from "@/lib/data/accounts";
 import { fmt, fmtDayMonth } from "@/lib/format";
 
 export const metadata = { title: "Caixa · Patrimônio" };
 
 export default async function CaixaPage() {
-  const [cashflow, accounts] = await Promise.all([getCashflow(60), getAccounts()]);
+  const [cashflow, accounts, recurrences] = await Promise.all([
+    getCashflow(60),
+    getAccounts(),
+    getRecurrences(),
+  ]);
   const { cards } = splitAccounts(accounts);
 
   const pendingByDate = new Map<string, typeof cashflow.pending>();
@@ -71,6 +77,8 @@ export default async function CaixaPage() {
           </div>
         </Card>
       </div>
+
+      <RecurrencePanel recurrences={recurrences} />
 
       {activeDays.length === 0 ? (
         <Card>
