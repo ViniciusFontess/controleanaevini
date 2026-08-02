@@ -3,6 +3,7 @@ import { FlowBarsChart } from "@/components/charts/flow-bars-chart";
 import { NetWorthChart } from "@/components/charts/net-worth-chart";
 import { Card, Dot } from "@/components/ui/card";
 import { getAccounts, splitAccounts } from "@/lib/data/accounts";
+import { getOpenInvoiceTotal } from "@/lib/data/cashflow";
 import { monthKey, monthlyFlow, monthSummary, netWorth } from "@/lib/data/finance";
 import { getSnapshots } from "@/lib/data/snapshots";
 import { getTransactions } from "@/lib/data/transactions";
@@ -14,14 +15,16 @@ export default async function DashboardPage() {
   const now = new Date();
   const sixMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
 
-  const [accounts, snapshots, recentTransactions, monthTransactions] = await Promise.all([
-    getAccounts(),
-    getSnapshots(12),
-    getTransactions({ since: monthKey(sixMonthsAgo) }),
-    getTransactions({ month: now }),
-  ]);
+  const [accounts, snapshots, recentTransactions, monthTransactions, openInvoices] =
+    await Promise.all([
+      getAccounts(),
+      getSnapshots(12),
+      getTransactions({ since: monthKey(sixMonthsAgo) }),
+      getTransactions({ month: now }),
+      getOpenInvoiceTotal(),
+    ]);
 
-  const totals = netWorth(accounts);
+  const totals = netWorth(accounts, openInvoices);
   const { assets, liabilities } = splitAccounts(accounts);
   const summary = monthSummary(monthTransactions);
   const flow = monthlyFlow(recentTransactions, 6, now);
@@ -130,10 +133,12 @@ export default async function DashboardPage() {
             Total de passivos
           </div>
           <div className="mt-3 text-[27px] font-extrabold tracking-[-0.02em] text-coral-strong">
-            R$ {fmt(totals.totalLiabilities)}
+            R$ {fmt(totals.totalLiabilities + totals.openInvoices)}
           </div>
           <div className="mt-1 text-[12.5px] text-muted">
-            {liabilities.length} {liabilities.length === 1 ? "item" : "itens"}
+            {totals.openInvoices > 0
+              ? `inclui R$ ${fmt(totals.openInvoices)} de fatura em aberto`
+              : `${liabilities.length} ${liabilities.length === 1 ? "item" : "itens"}`}
           </div>
         </Card>
 

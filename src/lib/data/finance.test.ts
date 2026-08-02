@@ -30,7 +30,12 @@ test("netWorth subtrai passivos dos ativos", () => {
 });
 
 test("netWorth com lista vazia devolve zeros", () => {
-  assert.deepEqual(netWorth([]), { totalAssets: 0, totalLiabilities: 0, netWorth: 0 });
+  assert.deepEqual(netWorth([]), {
+    totalAssets: 0,
+    totalLiabilities: 0,
+    openInvoices: 0,
+    netWorth: 0,
+  });
 });
 
 test("netWorth de quem só tem passivo fica negativo", () => {
@@ -296,4 +301,29 @@ test("openInvoiceTotal considera o próprio dia do vencimento em aberto", () => 
     openInvoiceTotal([{ amount: -100, cash_date: "2026-10-25" }], "2026-10-25"),
     100,
   );
+});
+
+// ---------- patrimônio com fatura ----------
+
+test("netWorth desconta a fatura em aberto", () => {
+  const totals = netWorth(
+    [
+      { kind: "asset", balance: 10000 },
+      { kind: "liability", balance: 2000 },
+      // saldo de cartão é derivado das compras; a coluna não entra na soma
+      { kind: "credit_card", balance: 999 },
+    ],
+    1500,
+  );
+
+  assert.equal(totals.totalAssets, 10000);
+  assert.equal(totals.totalLiabilities, 2000);
+  assert.equal(totals.openInvoices, 1500);
+  assert.equal(totals.netWorth, 6500);
+});
+
+test("netWorth sem fatura se comporta como antes", () => {
+  const totals = netWorth([{ kind: "asset", balance: 100 }]);
+  assert.equal(totals.netWorth, 100);
+  assert.equal(totals.openInvoices, 0);
 });

@@ -16,15 +16,28 @@ export type TransactionLike = {
 export type NetWorthTotals = {
   totalAssets: number;
   totalLiabilities: number;
+  openInvoices: number;
   netWorth: number;
 };
 
-/** Ativos menos passivos. `balance` de passivo é guardado positivo. */
-export function netWorth(accounts: readonly AccountLike[]): NetWorthTotals {
+/**
+ * Ativos menos passivos menos faturas em aberto. `balance` de passivo é
+ * guardado positivo.
+ *
+ * Contas do tipo `credit_card` são ignoradas na soma: a dívida do cartão é a
+ * fatura, calculada a partir das compras, não um saldo digitado que
+ * dessincronizaria na primeira compra esquecida.
+ */
+export function netWorth(
+  accounts: readonly AccountLike[],
+  openInvoices = 0,
+): NetWorthTotals {
   let totalAssets = 0;
   let totalLiabilities = 0;
 
   for (const account of accounts) {
+    if (account.kind === "credit_card") continue;
+
     const value = Number(account.balance) || 0;
     if (account.kind === "liability") {
       totalLiabilities += value;
@@ -33,7 +46,12 @@ export function netWorth(accounts: readonly AccountLike[]): NetWorthTotals {
     }
   }
 
-  return { totalAssets, totalLiabilities, netWorth: totalAssets - totalLiabilities };
+  return {
+    totalAssets,
+    totalLiabilities,
+    openInvoices,
+    netWorth: totalAssets - totalLiabilities - openInvoices,
+  };
 }
 
 export type MonthSummary = {
