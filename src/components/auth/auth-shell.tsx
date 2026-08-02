@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { BrandMark } from "@/components/app/nav-items";
+
 type AuthShellProps = {
   title: string;
   subtitle: string;
@@ -13,21 +15,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-[400px]">
         <div className="mb-7 flex items-center gap-3">
-          <div className="flex size-[34px] flex-none items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,var(--color-blue),var(--color-green))]">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#fff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M4 15l5-5 4 4 7-8" />
-            </svg>
-          </div>
+          <BrandMark />
           <span className="font-display text-[16px] font-extrabold tracking-[-0.02em]">
             Patrimônio
           </span>
