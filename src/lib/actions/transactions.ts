@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/data/user.ts";
-import { cashDateFor, installmentPlan, isoDate } from "@/lib/data/finance.ts";
+import { addMonths, cashDateFor, installmentPlan, isoDate } from "@/lib/data/finance.ts";
 import { readAmount, readText, type FormState } from "./form-state.ts";
 
 export async function createTransaction(
@@ -130,6 +130,81 @@ function buildInstallmentRows(input: {
     installment_number: parcel.number,
     installment_total: input.installments,
   }));
+}
+
+/**
+ * Repete um lançamento no mês seguinte, para o que é recorrente mas muda de
+ * valor (a fatura, a conta de luz) e você quer conferir antes de confirmar.
+ *
+ * Não copia vínculo de parcela nem de recorrência: a cópia é um lançamento novo
+ * e independente, senão a parcela 3/12 viraria uma 3/12 fantasma em outro mês.
+ */
+export async function duplicateToNextMonth(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const id = readText(formData, "id");
+  if (!id) return { error: "Lançamento não identificado." };
+
+  const { supabase, userId } = await requireUser();
+
+  const { data: original, error: readError } = await supabase
+    .from("transactions")
+    .select("description, category, amount, occurred_on, account_id, installment_group")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (readError) return { error: `Não foi possível ler o lançamento: ${readError.message}` };
+  if (!original) return { error: "Lançamento não encontrado." };
+  if (original.installment_group) {
+    return { error: "Parcela não se duplica — as parcelas seguintes já existem." };
+  }
+
+  const occurredOn = addMonths(original.occurred_on, 1);
+  const cashDate = await resolveCashDate(supabase, userId, original.account_id, occurredOn);
+
+  const { error } = await supabase.from("transactions").insert({
+    user_id: userId,
+    account_id: original.account_id,
+    description: original.description,
+    category: original.category,
+    amount: original.amount,
+    occurred_on: occurredOn,
+    cash_date: cashDate,
+  });
+
+  if (error) return { error: `Não foi possível duplicar: ${error.message}` };
+
+  revalidatePath("/", "layout");
+  return { ok: true, notice: `Repetido em ${occurredOn.split("-").reverse().join("/")}.` };
+}
+
+/** Data de saída do dinheiro: pelo ciclo, se for cartão; senão, a própria data. */
+async function resolveCashDate(
+  supabase: Awaited<ReturnType<typeof requireUser>>["supabase"],
+  userId: string,
+  accountId: string | null,
+  occurredOn: string,
+): Promise<string> {
+  if (!accountId) return occurredOn;
+
+  const { data: account } = await supabase
+    .from("accounts")
+    .select("kind, closing_day, due_day")
+    .eq("id", accountId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (
+    account?.kind === "credit_card" &&
+    account.closing_day !== null &&
+    account.due_day !== null
+  ) {
+    return cashDateFor(occurredOn, account.closing_day, account.due_day);
+  }
+
+  return occurredOn;
 }
 
 /** Excluir uma parcela apaga a compra inteira — parcela solta não faz sentido. */

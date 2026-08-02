@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { NewTransactionPanel } from "@/components/fluxo/transaction-form";
 import { QuickEntry } from "@/components/fluxo/quick-entry";
-import { deleteTransaction } from "@/lib/actions/transactions";
-import { DeleteButton } from "@/components/ui/form-fields";
+import { TransactionActions } from "@/components/fluxo/transaction-actions";
 import { Card } from "@/components/ui/card";
 import { getAccounts } from "@/lib/data/accounts";
 import { isoDate, monthKey, monthSummary } from "@/lib/data/finance";
@@ -144,10 +143,12 @@ export default async function FluxoPage({
                   {isIncome ? "+" : "−"}R$ {fmt(Math.abs(Number(transaction.amount)))}
                 </div>
 
-                <form action={deleteTransaction}>
-                  <input type="hidden" name="id" value={transaction.id} />
-                  <DeleteButton confirmMessage={`Excluir "${transaction.description}"?`} />
-                </form>
+                <TransactionActions
+                  id={transaction.id}
+                  description={transaction.description}
+                  isFixed={transaction.recurrence_id !== null}
+                  isInstallment={transaction.installment_group !== null}
+                />
               </Card>
             );
           })

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  addMonths,
   cashDateFor,
   clampDay,
   installmentPlan,
@@ -326,4 +327,20 @@ test("netWorth sem fatura se comporta como antes", () => {
   const totals = netWorth([{ kind: "asset", balance: 100 }]);
   assert.equal(totals.netWorth, 100);
   assert.equal(totals.openInvoices, 0);
+});
+
+// ---------- addMonths ----------
+
+test("addMonths avança preservando o dia", () => {
+  assert.equal(addMonths("2026-08-10", 1), "2026-09-10");
+  assert.equal(addMonths("2026-08-10", 0), "2026-08-10");
+});
+
+test("addMonths vira o ano", () => {
+  assert.equal(addMonths("2026-12-05", 1), "2027-01-05");
+});
+
+test("addMonths encurta o dia em mês curto", () => {
+  assert.equal(addMonths("2026-01-31", 1), "2026-02-28");
+  assert.equal(addMonths("2026-08-31", 1), "2026-09-30");
 });

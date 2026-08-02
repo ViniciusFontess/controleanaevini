@@ -297,7 +297,7 @@ export type Installment = {
 };
 
 /** Soma `months` meses a uma data ISO, encurtando o dia em meses curtos. */
-function addMonths(isoValue: string, months: number): string {
+export function addMonths(isoValue: string, months: number): string {
   const base = new Date(`${isoValue}T00:00:00Z`);
   const anchor = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + months, 1));
   const year = anchor.getUTCFullYear();

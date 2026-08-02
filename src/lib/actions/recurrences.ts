@@ -39,6 +39,105 @@ export async function createRecurrence(
   return { ok: true, notice: "Recorrência criada." };
 }
 
+export async function updateRecurrence(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const id = readText(formData, "id");
+  if (!id) return { error: "Recorrência não identificada." };
+
+  const name = readText(formData, "name");
+  const category = readText(formData, "category");
+  const direction = readText(formData, "direction");
+  const amount = readAmount(formData, "amount");
+  const dayOfMonth = Number(readText(formData, "day_of_month"));
+
+  if (!name) return { error: "Dê um nome à recorrência." };
+  if (!category) return { error: "Informe uma categoria." };
+  if (amount === null || amount <= 0) return { error: "Informe um valor maior que zero." };
+  if (direction !== "income" && direction !== "expense") {
+    return { error: "Selecione se é receita ou despesa." };
+  }
+  if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+    return { error: "Informe um dia do mês entre 1 e 31." };
+  }
+
+  const { supabase, userId } = await requireUser();
+  const { error } = await supabase
+    .from("recurrences")
+    .update({
+      name,
+      category,
+      amount: (direction === "income" ? 1 : -1) * amount,
+      day_of_month: dayOfMonth,
+    })
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (error) return { error: `Não foi possível atualizar: ${error.message}` };
+
+  revalidatePath("/", "layout");
+  return { ok: true, notice: "Recorrência atualizada." };
+}
+
+/**
+ * Promove um lançamento existente a gasto/receita fixo.
+ *
+ * Marca a própria transação com o `recurrence_id` criado, para que o mês dela já
+ * conte como confirmado — sem isso, a tela de Caixa mostraria uma ocorrência
+ * pendente para algo que o usuário já lançou.
+ */
+export async function promoteToRecurrence(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const transactionId = readText(formData, "transaction_id");
+  if (!transactionId) return { error: "Lançamento não identificado." };
+
+  const { supabase, userId } = await requireUser();
+
+  const { data: transaction, error: readError } = await supabase
+    .from("transactions")
+    .select("id, description, category, amount, occurred_on, account_id, recurrence_id")
+    .eq("id", transactionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (readError) return { error: `Não foi possível ler o lançamento: ${readError.message}` };
+  if (!transaction) return { error: "Lançamento não encontrado." };
+  if (transaction.recurrence_id) return { error: "Esse lançamento já é fixo." };
+
+  const dayOfMonth = Number(transaction.occurred_on.slice(8, 10));
+
+  const { data: created, error: insertError } = await supabase
+    .from("recurrences")
+    .insert({
+      user_id: userId,
+      name: transaction.description,
+      category: transaction.category,
+      amount: transaction.amount,
+      day_of_month: dayOfMonth,
+      account_id: transaction.account_id,
+      // Começa no mês deste lançamento; a projeção só olha daqui pra frente.
+      start_date: transaction.occurred_on,
+    })
+    .select("id")
+    .single();
+
+  if (insertError) return { error: `Não foi possível criar o fixo: ${insertError.message}` };
+
+  const { error: linkError } = await supabase
+    .from("transactions")
+    .update({ recurrence_id: created.id })
+    .eq("id", transactionId)
+    .eq("user_id", userId);
+
+  if (linkError) return { error: `Fixo criado, mas não ficou ligado: ${linkError.message}` };
+
+  revalidatePath("/", "layout");
+  return { ok: true, notice: `“${transaction.description}” agora se repete todo dia ${dayOfMonth}.` };
+}
+
 export async function deleteRecurrence(formData: FormData): Promise<void> {
   const id = readText(formData, "id");
   if (!id) return;
