@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   return (
     <>
       <div className="mb-[22px]">
-        <div className="text-[13px] font-medium text-muted">Bom te ver de novo</div>
+        <div className="font-display text-[15px] font-semibold text-muted">Bom te ver de novo</div>
         <div className="mt-0.5 text-[13px] font-medium text-muted">{fmtMonthLong(currentMonth)}</div>
       </div>
 
