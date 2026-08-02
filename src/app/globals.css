@@ -6,6 +6,7 @@
  */
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-playfair), Georgia, serif;
 
   /* superfícies */
   --color-canvas: #f7f9fc;
