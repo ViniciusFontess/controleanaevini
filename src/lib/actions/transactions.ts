@@ -33,6 +33,9 @@ export async function createTransaction(
     category,
     amount: signedAmount,
     occurred_on: occurredOn,
+    // Sem cartão escolhido, o dinheiro se move no dia do lançamento.
+    // A Task 8 do plano passa a calcular isto pelo ciclo do cartão.
+    cash_date: occurredOn,
   });
 
   if (error) return { error: `Não foi possível salvar: ${error.message}` };
