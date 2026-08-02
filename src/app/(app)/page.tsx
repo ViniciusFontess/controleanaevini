@@ -51,11 +51,11 @@ export default async function DashboardPage() {
   return (
     <>
       <div className="mb-[22px]">
-        <div className="font-display text-[15px] font-semibold text-muted">Bom te ver de novo</div>
+        <div className="font-display text-[15px] font-semibold text-ink">Bom te ver de novo</div>
         <div className="mt-0.5 text-[13px] font-medium text-muted">{fmtMonthLong(currentMonth)}</div>
       </div>
 
-      <Card className="mb-4 bg-[linear-gradient(160deg,#fff,#FBFCFE)] px-[26px] py-[30px]">
+      <Card className="mb-4 bg-[linear-gradient(160deg,rgba(255,255,255,.95),rgba(251,252,254,.95))] px-[26px] py-[30px]">
         <div className="text-[13px] font-semibold tracking-[0.01em] text-muted">
           Patrimônio líquido
         </div>

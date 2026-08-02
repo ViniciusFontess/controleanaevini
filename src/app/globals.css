@@ -46,15 +46,17 @@
   --shadow-card: 0 2px 12px rgba(26, 31, 43, 0.05);
 }
 
+/*
+ * O background fica só no html: body, main, ou qualquer wrapper full-bleed
+ * com background opaco pinta por cima do PhotoBackdrop (-z-10) e some com a
+ * foto. Já quebrou uma vez assim.
+ */
 html {
   background: var(--color-canvas);
 }
 
 body {
   color: var(--color-ink);
-}
-
-body {
   -webkit-font-smoothing: antialiased;
 }
 

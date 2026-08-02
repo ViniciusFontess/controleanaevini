@@ -16,13 +16,13 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
       <div className="w-full max-w-[400px]">
         <div className="mb-7 flex items-center gap-3">
           <BrandMark />
-          <span className="font-display text-[16px] font-extrabold tracking-[-0.02em]">
+          <span className="font-display text-[16px] font-bold tracking-[-0.02em]">
             Patrimônio
           </span>
         </div>
 
-        <div className="rounded-2xl bg-surface/95 p-7 shadow-card backdrop-blur-sm">
-          <h1 className="font-display text-[24px] font-extrabold tracking-[-0.02em]">{title}</h1>
+        <div className="rounded-2xl bg-surface/95 p-7 shadow-card">
+          <h1 className="font-display text-[24px] font-bold tracking-[-0.02em]">{title}</h1>
           <p className="mt-1 mb-6 text-[14px] text-muted">{subtitle}</p>
           {children}
         </div>
