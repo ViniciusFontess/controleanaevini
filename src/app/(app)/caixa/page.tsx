@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ConfirmOccurrence } from "@/components/caixa/confirm-occurrence";
+import { NewTransactionPanel } from "@/components/fluxo/transaction-form";
+import { TransactionActions } from "@/components/fluxo/transaction-actions";
 import { Card } from "@/components/ui/card";
 import { RecurrencePanel } from "@/components/caixa/recurrence-panel";
 import { getCashflow } from "@/lib/data/cashflow";
@@ -33,6 +35,14 @@ export default async function CaixaPage() {
     cashflow.openingBalance,
   );
 
+  // Mesmo formulário do Fluxo: lançar daqui evita ter que trocar de tela.
+  const payableAccounts = accounts
+    .filter((a) => a.kind !== "liability")
+    .map((a) => ({ id: a.id, name: a.name, isCard: a.kind === "credit_card" }));
+  const knownCategories = Array.from(
+    new Set([...cashflow.entriesByDate.values()].flat().map((e) => e.category)),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
   if (accounts.length === 0) {
     return (
       <>
@@ -52,7 +62,15 @@ export default async function CaixaPage() {
 
   return (
     <>
-      <Header />
+      <Header
+        action={
+          <NewTransactionPanel
+            today={cashflow.start}
+            knownCategories={knownCategories}
+            accounts={payableAccounts}
+          />
+        }
+      />
 
       {!hasLiquidAccount(accounts) ? (
         <Card className="mb-4 border-l-4 border-blue">
@@ -143,6 +161,33 @@ export default async function CaixaPage() {
                   </div>
                 </div>
 
+                {(cashflow.entriesByDate.get(day.date) ?? []).map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="mt-2.5 flex items-center justify-between gap-3 border-t border-line-soft pt-2.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-[13.5px] font-semibold">
+                        {entry.description}
+                      </div>
+                      <div className="text-[11.5px] text-muted">{entry.category}</div>
+                    </div>
+                    <span
+                      className={`text-[13.5px] font-bold whitespace-nowrap ${
+                        entry.amount >= 0 ? "text-green-strong" : "text-coral-strong"
+                      }`}
+                    >
+                      {entry.amount >= 0 ? "+" : "−"}R$ {fmt(Math.abs(entry.amount))}
+                    </span>
+                    <TransactionActions
+                      id={entry.id}
+                      description={entry.description}
+                      isFixed={entry.isFixed}
+                      isInstallment={entry.isInstallment}
+                    />
+                  </div>
+                ))}
+
                 {pending.map((occurrence) => (
                   <div
                     key={`${occurrence.recurrenceId}-${occurrence.date}`}
@@ -178,13 +223,16 @@ export default async function CaixaPage() {
   );
 }
 
-function Header() {
+function Header({ action }: { action?: React.ReactNode }) {
   return (
-    <div className="mb-5">
-      <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">Caixa</h1>
-      <p className="mt-1 text-[14px] text-muted">
-        Quando o dinheiro entra e sai de verdade, nos próximos 60 dias
-      </p>
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">Caixa</h1>
+        <p className="mt-1 text-[14px] text-muted">
+          Quando o dinheiro entra e sai de verdade, nos próximos 60 dias
+        </p>
+      </div>
+      {action}
     </div>
   );
 }

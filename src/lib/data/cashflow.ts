@@ -18,9 +18,21 @@ export type PendingOccurrence = {
   amount: number;
 };
 
+/** Um lançamento real dentro de um dia da janela. */
+export type CashEntry = {
+  id: string;
+  description: string;
+  category: string;
+  amount: number;
+  isFixed: boolean;
+  isInstallment: boolean;
+};
+
 export type Cashflow = {
   days: CashDay[];
   pending: PendingOccurrence[];
+  /** lançamentos por `cash_date`, para a tela poder editar sem sair dela */
+  entriesByDate: Map<string, CashEntry[]>;
   openingBalance: number;
   start: string;
   end: string;
@@ -48,10 +60,13 @@ export async function getCashflow(days = 60): Promise<Cashflow> {
     getRecurrences(),
     supabase
       .from("transactions")
-      .select("id, description, amount, cash_date, recurrence_id, occurred_on")
+      .select(
+        "id, description, category, amount, cash_date, recurrence_id, occurred_on, installment_group",
+      )
       .eq("user_id", userId)
       .gte("cash_date", start)
-      .lte("cash_date", end),
+      .lte("cash_date", end)
+      .order("created_at", { ascending: true }),
   ]);
 
   if (error) throw new Error(`Falha ao carregar o fluxo de caixa: ${error.message}`);
@@ -60,6 +75,19 @@ export async function getCashflow(days = 60): Promise<Cashflow> {
     date: t.cash_date,
     amount: Number(t.amount) || 0,
   }));
+
+  const entriesByDate = new Map<string, CashEntry[]>();
+  for (const t of transactions ?? []) {
+    const entry: CashEntry = {
+      id: t.id,
+      description: t.description,
+      category: t.category,
+      amount: Number(t.amount) || 0,
+      isFixed: t.recurrence_id !== null,
+      isInstallment: t.installment_group !== null,
+    };
+    entriesByDate.set(t.cash_date, [...(entriesByDate.get(t.cash_date) ?? []), entry]);
+  }
 
   // Uma ocorrência está materializada quando já existe transação daquela
   // recorrência no mesmo mês — a mesma ideia da fatura: derivar, não guardar.
@@ -90,6 +118,7 @@ export async function getCashflow(days = 60): Promise<Cashflow> {
   return {
     days: runningBalance(openingBalance, movements, start, end),
     pending: pending.sort((a, b) => a.date.localeCompare(b.date)),
+    entriesByDate,
     openingBalance,
     start,
     end,
