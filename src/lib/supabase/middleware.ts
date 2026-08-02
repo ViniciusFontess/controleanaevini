@@ -7,11 +7,8 @@ const PUBLIC_PATHS = ["/login", "/signup"];
 /**
  * Rotas alcançáveis em qualquer estado de sessão — nem exigem login, nem
  * redirecionam quem já está logado.
- *
- * `/diagnostico` é temporário: precisa abrir justamente quando a autenticação
- * está quebrada. Remover junto com src/app/diagnostico.
  */
-const ALWAYS_ALLOWED_PATHS = ["/auth/confirm", "/diagnostico"];
+const ALWAYS_ALLOWED_PATHS = ["/auth/confirm"];
 
 export async function updateSession(request: NextRequest) {
   try {

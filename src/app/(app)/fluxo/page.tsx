@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { NewTransactionPanel } from "@/components/fluxo/transaction-form";
+import { QuickEntry } from "@/components/fluxo/quick-entry";
 import { deleteTransaction } from "@/lib/actions/transactions";
 import { DeleteButton } from "@/components/ui/form-fields";
 import { Card } from "@/components/ui/card";
+import { getAccounts } from "@/lib/data/accounts";
 import { isoDate, monthKey, monthSummary } from "@/lib/data/finance";
 import { categoriesOf, getTransactions } from "@/lib/data/transactions";
 import { fmt, fmtDayMonth, fmtMonthLong } from "@/lib/format";
@@ -18,9 +20,21 @@ export default async function FluxoPage({
   const now = new Date();
 
   // Totais do mês são sempre do mês inteiro; o filtro só afeta a lista.
-  const monthTransactions = await getTransactions({ month: now });
+  const [monthTransactions, accounts] = await Promise.all([
+    getTransactions({ month: now }),
+    getAccounts(),
+  ]);
+
   const summary = monthSummary(monthTransactions);
   const categories = categoriesOf(monthTransactions);
+
+  const payableAccounts = accounts
+    .filter((a) => a.kind !== "liability")
+    .map((a) => ({ id: a.id, name: a.name, isCard: a.kind === "credit_card" }));
+
+  // O lançamento rápido repete a última receita registrada — na prática, a venda
+  // do dia. Sem nenhuma receita ainda, não há o que repetir e ele não aparece.
+  const lastIncome = monthTransactions.find((t) => Number(t.amount) > 0);
 
   const activeCategory = categoria && categories.includes(categoria) ? categoria : null;
   const visible = activeCategory
@@ -34,7 +48,11 @@ export default async function FluxoPage({
           <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">Fluxo de caixa</h1>
           <p className="mt-1 text-[14px] text-muted">{fmtMonthLong(monthKey(now))}</p>
         </div>
-        <NewTransactionPanel today={isoDate(now)} knownCategories={categories} />
+        <NewTransactionPanel
+          today={isoDate(now)}
+          knownCategories={categories}
+          accounts={payableAccounts}
+        />
       </div>
 
       <Card className="mb-[18px] flex flex-wrap items-center justify-between gap-3">
@@ -63,6 +81,14 @@ export default async function FluxoPage({
           </div>
         </div>
       </Card>
+
+      {lastIncome ? (
+        <QuickEntry
+          today={isoDate(now)}
+          defaultCategory={lastIncome.category}
+          defaultDescription={lastIncome.description}
+        />
+      ) : null}
 
       {categories.length > 0 ? (
         <div className="mb-1.5 flex gap-2 overflow-x-auto pb-3">

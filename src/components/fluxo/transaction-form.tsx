@@ -5,18 +5,33 @@ import { createTransaction } from "@/lib/actions/transactions";
 import { EMPTY_FORM_STATE } from "@/lib/actions/form-state";
 import { Field, FormMessages, SubmitButton, inputClass } from "@/components/ui/form-fields";
 
+export type PayableAccount = {
+  id: string;
+  name: string;
+  isCard: boolean;
+};
+
 export function NewTransactionPanel({
   today,
   knownCategories,
+  accounts,
 }: {
   /** data ISO calculada no server, pra não divergir entre server e client render */
   today: string;
   knownCategories: string[];
+  accounts: PayableAccount[];
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(createTransaction, EMPTY_FORM_STATE);
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Como quase tudo passa no cartão, ele é o padrão — a exceção é escolher conta.
+  const defaultAccountId = accounts.find((a) => a.isCard)?.id ?? "";
+  const [accountId, setAccountId] = useState(defaultAccountId);
+  const isCard = accounts.some((a) => a.id === accountId && a.isCard);
+
+  // Só limpa os campos; a conta escolhida fica, porque quem acabou de lançar uma
+  // compra no cartão normalmente vai lançar a próxima no mesmo cartão.
   useEffect(() => {
     if (state.ok) formRef.current?.reset();
   }, [state]);
@@ -100,10 +115,46 @@ export function NewTransactionPanel({
             />
           </Field>
 
-          <Field label="Data" className="sm:col-span-2">
+          <Field label="Onde">
+            <select
+              name="account_id"
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+              className={inputClass}
+            >
+              <option value="">Conta / dinheiro</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                  {account.isCard ? " (cartão)" : ""}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          {isCard ? (
+            <Field label="Parcelas">
+              <select name="installments" defaultValue="1" className={inputClass}>
+                {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n}x
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
+
+          <Field label="Data" className={isCard ? "" : "sm:col-span-2"}>
             <input type="date" name="occurred_on" defaultValue={today} className={inputClass} />
           </Field>
         </div>
+
+        {isCard ? (
+          <p className="text-[12.5px] leading-[1.5] text-muted">
+            A compra entra no Fluxo na data acima, mas o dinheiro só sai no vencimento da fatura —
+            veja em Caixa quando isso acontece.
+          </p>
+        ) : null}
 
         <FormMessages state={state} />
 

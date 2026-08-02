@@ -16,8 +16,10 @@ export type Database = {
         Row: {
           balance: number
           category: string
+          closing_day: number | null
           color: string | null
           created_at: string
+          due_day: number | null
           id: string
           kind: string
           name: string
@@ -26,8 +28,10 @@ export type Database = {
         Insert: {
           balance?: number
           category: string
+          closing_day?: number | null
           color?: string | null
           created_at?: string
+          due_day?: number | null
           id?: string
           kind: string
           name: string
@@ -36,8 +40,10 @@ export type Database = {
         Update: {
           balance?: number
           category?: string
+          closing_day?: number | null
           color?: string | null
           created_at?: string
+          due_day?: number | null
           id?: string
           kind?: string
           name?: string
@@ -72,6 +78,56 @@ export type Database = {
         }
         Relationships: []
       }
+      recurrences: {
+        Row: {
+          account_id: string | null
+          active: boolean
+          amount: number
+          category: string
+          created_at: string
+          day_of_month: number
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          active?: boolean
+          amount: number
+          category: string
+          created_at?: string
+          day_of_month: number
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          active?: boolean
+          amount?: number
+          category?: string
+          created_at?: string
+          day_of_month?: number
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurrences_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       snapshots: {
         Row: {
           created_at: string
@@ -104,33 +160,66 @@ export type Database = {
       }
       transactions: {
         Row: {
+          account_id: string | null
           amount: number
+          cash_date: string
           category: string
           created_at: string
           description: string
           id: string
+          installment_group: string | null
+          installment_number: number | null
+          installment_total: number | null
           occurred_on: string
+          recurrence_id: string | null
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
+          cash_date: string
           category: string
           created_at?: string
           description: string
           id?: string
+          installment_group?: string | null
+          installment_number?: number | null
+          installment_total?: number | null
           occurred_on?: string
+          recurrence_id?: string | null
           user_id: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
+          cash_date?: string
           category?: string
           created_at?: string
           description?: string
           id?: string
+          installment_group?: string | null
+          installment_number?: number | null
+          installment_total?: number | null
           occurred_on?: string
+          recurrence_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_recurrence_id_fkey"
+            columns: ["recurrence_id"]
+            isOneToOne: false
+            referencedRelation: "recurrences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

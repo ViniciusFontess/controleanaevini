@@ -4,24 +4,80 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/data/user.ts";
 import { readAmount, readText, type FormState } from "./form-state.ts";
 
-function parseAccountForm(formData: FormData):
-  | { ok: true; values: { name: string; kind: string; category: string; balance: number; color: string | null } }
-  | { ok: false; error: string } {
+type AccountValues = {
+  name: string;
+  kind: string;
+  category: string;
+  balance: number;
+  color: string | null;
+  closing_day: number | null;
+  due_day: number | null;
+};
+
+function parseAccountForm(
+  formData: FormData,
+): { ok: true; values: AccountValues } | { ok: false; error: string } {
   const name = readText(formData, "name");
   const kind = readText(formData, "kind");
   const category = readText(formData, "category");
-  const balance = readAmount(formData, "balance");
   const color = readText(formData, "color");
 
   if (!name) return { ok: false, error: "Informe o nome da conta." };
-  if (kind !== "asset" && kind !== "liability") {
-    return { ok: false, error: "Selecione se é ativo ou passivo." };
+  if (kind !== "asset" && kind !== "liability" && kind !== "credit_card") {
+    return { ok: false, error: "Selecione o tipo da conta." };
   }
   if (!category) return { ok: false, error: "Informe uma categoria." };
-  if (balance === null) return { ok: false, error: "Informe um valor numérico válido." };
-  if (balance < 0) return { ok: false, error: "Use valores positivos — passivos já contam como dívida." };
 
-  return { ok: true, values: { name, kind, category, balance, color: color || null } };
+  if (kind === "credit_card") {
+    const closingDay = readCycleDay(formData, "closing_day");
+    const dueDay = readCycleDay(formData, "due_day");
+
+    if (closingDay === null) {
+      return { ok: false, error: "Informe o dia do fechamento (1 a 31)." };
+    }
+    if (dueDay === null) {
+      return { ok: false, error: "Informe o dia do vencimento (1 a 31)." };
+    }
+
+    // O saldo do cartão é derivado das compras, nunca digitado.
+    return {
+      ok: true,
+      values: {
+        name,
+        kind,
+        category,
+        balance: 0,
+        color: color || null,
+        closing_day: closingDay,
+        due_day: dueDay,
+      },
+    };
+  }
+
+  const balance = readAmount(formData, "balance");
+  if (balance === null) return { ok: false, error: "Informe um valor numérico válido." };
+  if (balance < 0) {
+    return { ok: false, error: "Use valores positivos — passivos já contam como dívida." };
+  }
+
+  return {
+    ok: true,
+    values: {
+      name,
+      kind,
+      category,
+      balance,
+      color: color || null,
+      closing_day: null,
+      due_day: null,
+    },
+  };
+}
+
+function readCycleDay(formData: FormData, field: string): number | null {
+  const value = Number(readText(formData, field));
+  if (!Number.isInteger(value) || value < 1 || value > 31) return null;
+  return value;
 }
 
 export async function createAccount(_prev: FormState, formData: FormData): Promise<FormState> {

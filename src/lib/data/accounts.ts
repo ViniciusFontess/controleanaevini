@@ -2,7 +2,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { requireUser } from "./user.ts";
 
 export type Account = Tables<"accounts">;
-export type AccountKind = "asset" | "liability";
+export type AccountKind = "asset" | "liability" | "credit_card";
 
 /** Paleta do donut, na ordem do design (Patrimonio.dc.html). */
 export const ACCOUNT_COLORS = [
@@ -26,12 +26,20 @@ export async function getAccounts(): Promise<Account[]> {
   return data ?? [];
 }
 
-/** Separa em ativos e passivos preservando a ordem por saldo. */
+/** Separa por tipo preservando a ordem por saldo. */
 export function splitAccounts(accounts: readonly Account[]) {
   return {
     assets: accounts.filter((a) => a.kind === "asset"),
     liabilities: accounts.filter((a) => a.kind === "liability"),
+    cards: accounts.filter((a) => a.kind === "credit_card"),
   };
+}
+
+/** Soma dos saldos das contas de ativo — o ponto de partida da tela de Caixa. */
+export function cashOnHand(accounts: readonly Account[]): number {
+  return accounts
+    .filter((a) => a.kind === "asset")
+    .reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
 }
 
 /** Cor salva na conta, ou uma da paleta pela posição. */

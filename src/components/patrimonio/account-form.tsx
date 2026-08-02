@@ -20,6 +20,8 @@ export function AccountForm({ account, defaultKind = "asset", onDone }: AccountF
     EMPTY_FORM_STATE,
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const [kind, setKind] = useState<string>(account?.kind ?? defaultKind);
+  const isCard = kind === "credit_card";
 
   useEffect(() => {
     if (!state.ok) return;
@@ -58,25 +60,63 @@ export function AccountForm({ account, defaultKind = "asset", onDone }: AccountF
         <Field label="Tipo">
           <select
             name="kind"
-            defaultValue={account?.kind ?? defaultKind}
+            value={kind}
+            onChange={(event) => setKind(event.target.value)}
             className={inputClass}
           >
             <option value="asset">Ativo</option>
             <option value="liability">Passivo</option>
+            <option value="credit_card">Cartão de crédito</option>
           </select>
         </Field>
 
-        <Field label="Valor (R$)">
-          <input
-            name="balance"
-            required
-            inputMode="decimal"
-            defaultValue={account ? String(account.balance) : ""}
-            placeholder="0,00"
-            className={inputClass}
-          />
-        </Field>
+        {isCard ? (
+          <>
+            <Field label="Fecha no dia">
+              <input
+                name="closing_day"
+                required
+                type="number"
+                min={1}
+                max={31}
+                defaultValue={account?.closing_day ?? ""}
+                placeholder="18"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Vence no dia">
+              <input
+                name="due_day"
+                required
+                type="number"
+                min={1}
+                max={31}
+                defaultValue={account?.due_day ?? ""}
+                placeholder="25"
+                className={inputClass}
+              />
+            </Field>
+          </>
+        ) : (
+          <Field label="Valor (R$)">
+            <input
+              name="balance"
+              required
+              inputMode="decimal"
+              defaultValue={account ? String(account.balance) : ""}
+              placeholder="0,00"
+              className={inputClass}
+            />
+          </Field>
+        )}
       </div>
+
+      {isCard ? (
+        <p className="text-[12.5px] leading-[1.5] text-muted">
+          O saldo do cartão não é digitado: a fatura é calculada a partir das compras. Uma compra
+          feita depois do fechamento já cai na fatura do mês seguinte.
+        </p>
+      ) : null}
 
       <FormMessages state={state} />
 
