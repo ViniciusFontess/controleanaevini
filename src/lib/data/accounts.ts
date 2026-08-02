@@ -35,11 +35,22 @@ export function splitAccounts(accounts: readonly Account[]) {
   };
 }
 
-/** Soma dos saldos das contas de ativo — o ponto de partida da tela de Caixa. */
+/**
+ * Saldo de partida da tela de Caixa: só o dinheiro disponível.
+ *
+ * Investimento é ativo e entra no patrimônio, mas não é caixa — projetar o mês
+ * contando com renda fixa faria o app dizer "tranquilo" com dinheiro que não vai
+ * ser resgatado para pagar a fatura.
+ */
 export function cashOnHand(accounts: readonly Account[]): number {
   return accounts
-    .filter((a) => a.kind === "asset")
+    .filter((a) => a.kind === "asset" && a.liquid)
     .reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+}
+
+/** Tem alguma conta líquida cadastrada? Se não, o Caixa parte de zero. */
+export function hasLiquidAccount(accounts: readonly Account[]): boolean {
+  return accounts.some((a) => a.kind === "asset" && a.liquid);
 }
 
 /** Cor salva na conta, ou uma da paleta pela posição. */

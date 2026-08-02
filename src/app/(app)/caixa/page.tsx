@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { RecurrencePanel } from "@/components/caixa/recurrence-panel";
 import { getCashflow } from "@/lib/data/cashflow";
 import { getRecurrences } from "@/lib/data/recurrences";
-import { getAccounts, splitAccounts } from "@/lib/data/accounts";
+import { getAccounts, hasLiquidAccount, splitAccounts } from "@/lib/data/accounts";
 import { fmt, fmtDayMonth } from "@/lib/format";
 
 export const metadata = { title: "Caixa · Patrimônio" };
@@ -54,12 +54,27 @@ export default async function CaixaPage() {
     <>
       <Header />
 
+      {!hasLiquidAccount(accounts) ? (
+        <Card className="mb-4 border-l-4 border-blue">
+          <p className="text-[13.5px] leading-[1.6] text-muted">
+            <span className="font-bold text-ink">O caixa está partindo de R$ 0.</span> Suas contas
+            cadastradas são investimento, e investimento não é dinheiro disponível. Cadastre sua
+            conta corrente em{" "}
+            <Link href="/patrimonio" className="font-semibold text-blue-strong">
+              Patrimônio
+            </Link>{" "}
+            marcando <em>“é dinheiro disponível”</em> para a projeção abaixo fazer sentido.
+          </p>
+        </Card>
+      ) : null}
+
       <div className="mb-4 grid grid-cols-1 gap-3.5 md:grid-cols-2">
         <Card>
           <div className="text-[13px] font-semibold text-muted">Saldo em conta hoje</div>
           <div className="mt-2 text-[32px] font-extrabold tracking-[-0.02em]">
             R$ {fmt(cashflow.openingBalance)}
           </div>
+          <div className="mt-1 text-[12.5px] text-muted">só contas marcadas como disponíveis</div>
         </Card>
         <Card>
           <div className="text-[13px] font-semibold text-muted">Menor saldo nos 60 dias</div>

@@ -118,6 +118,23 @@ export function AccountForm({ account, defaultKind = "asset", onDone }: AccountF
         </p>
       ) : null}
 
+      {kind === "asset" ? (
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-line-strong bg-white p-3">
+          <input
+            type="checkbox"
+            name="liquid"
+            defaultChecked={account?.liquid ?? false}
+            className="mt-0.5 size-4 flex-none accent-[var(--color-blue-strong)]"
+          />
+          <span className="text-[12.5px] leading-[1.5] text-muted">
+            <span className="font-semibold text-ink">É dinheiro disponível</span> — conta corrente,
+            carteira, algo que você usa no dia a dia. Só o que estiver marcado entra no saldo da
+            tela de Caixa. Investimento fica desmarcado: continua no seu patrimônio, mas não é
+            caixa.
+          </span>
+        </label>
+      ) : null}
+
       <FormMessages state={state} />
 
       <div className="flex gap-2">

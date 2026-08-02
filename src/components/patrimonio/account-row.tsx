@@ -30,7 +30,17 @@ export function AccountRow({
     <div className="group border-t border-line-soft py-3">
       <div className="flex items-center justify-between gap-2.5">
         <div className="min-w-0">
-          <div className="truncate text-[14.5px] font-semibold">{account.name}</div>
+          <div className="flex items-center gap-2">
+            <span className="truncate text-[14.5px] font-semibold">{account.name}</span>
+            {account.liquid ? (
+              <span
+                title="Entra no saldo da tela de Caixa"
+                className="flex-none rounded-full bg-blue-soft px-2 py-0.5 text-[10.5px] font-bold text-blue-strong"
+              >
+                disponível
+              </span>
+            ) : null}
+          </div>
           <div className="mt-0.5 text-[12px] text-muted">{account.category}</div>
         </div>
 

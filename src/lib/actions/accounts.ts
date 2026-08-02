@@ -12,6 +12,7 @@ type AccountValues = {
   color: string | null;
   closing_day: number | null;
   due_day: number | null;
+  liquid: boolean;
 };
 
 function parseAccountForm(
@@ -50,6 +51,7 @@ function parseAccountForm(
         color: color || null,
         closing_day: closingDay,
         due_day: dueDay,
+        liquid: false,
       },
     };
   }
@@ -70,6 +72,8 @@ function parseAccountForm(
       color: color || null,
       closing_day: null,
       due_day: null,
+      // Só ativo pode ser caixa; a constraint no banco garante o mesmo.
+      liquid: kind === "asset" && formData.get("liquid") !== null,
     },
   };
 }

@@ -22,6 +22,7 @@ export type Database = {
           due_day: number | null
           id: string
           kind: string
+          liquid: boolean
           name: string
           user_id: string
         }
@@ -34,6 +35,7 @@ export type Database = {
           due_day?: number | null
           id?: string
           kind: string
+          liquid?: boolean
           name: string
           user_id: string
         }
@@ -46,6 +48,7 @@ export type Database = {
           due_day?: number | null
           id?: string
           kind?: string
+          liquid?: boolean
           name?: string
           user_id?: string
         }
