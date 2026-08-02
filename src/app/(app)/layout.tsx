@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SidebarNav />
 
         <div className="mt-auto border-t border-line pt-3">
-          <div className="mb-2 flex items-center gap-2.5 px-3">
+          <div className="mb-2 flex items-center justify-center gap-2.5 lg:justify-start lg:px-3">
             <div className="size-7 flex-none overflow-hidden rounded-full ring-2 ring-white shadow-sm">
               <Image
                 src="/photos/couple-1.webp"
