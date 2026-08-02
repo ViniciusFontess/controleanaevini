@@ -96,33 +96,33 @@ export async function getCashflow(days = 60): Promise<Cashflow> {
   };
 }
 
-/** Total das faturas em aberto de todos os cartões, para o patrimônio líquido. */
-export async function getOpenInvoiceTotal(): Promise<number> {
-  const { supabase, userId } = await requireUser();
-  const today = isoDate(new Date());
-
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("amount, cash_date, accounts!inner(kind)")
-    .eq("user_id", userId)
-    .eq("accounts.kind", "credit_card")
-    .gte("cash_date", today);
-
-  if (error) throw new Error(`Falha ao calcular a fatura em aberto: ${error.message}`);
-
-  return (data ?? []).reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
-}
-
-/** Fatura em aberto por cartão, para listar em Passivos. */
+/**
+ * Fatura em aberto por cartão, para listar em Passivos.
+ *
+ * Duas queries simples em vez de um join embutido do PostgREST: o join não é
+ * coberto por tipo nem por teste e só falharia em produção, e a diferença de
+ * uma ida ao banco é irrelevante nesta escala.
+ */
 export async function getOpenInvoiceByCard(): Promise<Map<string, number>> {
   const { supabase, userId } = await requireUser();
   const today = isoDate(new Date());
 
+  const { data: cards, error: cardsError } = await supabase
+    .from("accounts")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("kind", "credit_card");
+
+  if (cardsError) throw new Error(`Falha ao carregar cartões: ${cardsError.message}`);
+
+  const cardIds = (cards ?? []).map((c) => c.id);
+  if (cardIds.length === 0) return new Map();
+
   const { data, error } = await supabase
     .from("transactions")
-    .select("account_id, amount, cash_date, accounts!inner(kind)")
+    .select("account_id, amount")
     .eq("user_id", userId)
-    .eq("accounts.kind", "credit_card")
+    .in("account_id", cardIds)
     .gte("cash_date", today);
 
   if (error) throw new Error(`Falha ao calcular faturas por cartão: ${error.message}`);
@@ -133,4 +133,10 @@ export async function getOpenInvoiceByCard(): Promise<Map<string, number>> {
     byCard.set(t.account_id, (byCard.get(t.account_id) ?? 0) + Math.abs(Number(t.amount) || 0));
   }
   return byCard;
+}
+
+/** Total das faturas em aberto, para o patrimônio líquido. */
+export async function getOpenInvoiceTotal(): Promise<number> {
+  const byCard = await getOpenInvoiceByCard();
+  return [...byCard.values()].reduce((sum, value) => sum + value, 0);
 }

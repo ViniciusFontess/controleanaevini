@@ -58,6 +58,18 @@ export const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: "/caixa",
+    label: "Caixa",
+    shortLabel: "Caixa",
+    icon: (
+      <svg {...iconProps}>
+        <rect x="3" y="7" width="18" height="12" rx="2.5" />
+        <path d="M3 11h18" />
+        <path d="M7 3h10l1 4H6z" />
+      </svg>
+    ),
+  },
+  {
     href: "/projecao",
     label: "Projeção",
     shortLabel: "Projeção",
