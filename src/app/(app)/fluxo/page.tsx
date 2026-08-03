@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { NewTransactionPanel } from "@/components/fluxo/transaction-form";
 import { QuickEntry } from "@/components/fluxo/quick-entry";
-import { TransactionActions } from "@/components/fluxo/transaction-actions";
 import { EditableTransaction } from "@/components/fluxo/editable-transaction";
 import { Card } from "@/components/ui/card";
 import { getAccounts } from "@/lib/data/accounts";
@@ -130,17 +129,10 @@ export default async function FluxoPage({
                       transaction.installment_number && transaction.installment_total
                         ? `${transaction.installment_number}/${transaction.installment_total}`
                         : null,
+                    isFixed: transaction.recurrence_id !== null,
+                    isInstallment: transaction.installment_group !== null,
                   }}
                   accounts={payableAccounts}
-                  renderActions={(startEditing) => (
-                    <TransactionActions
-                      id={transaction.id}
-                      description={transaction.description}
-                      isFixed={transaction.recurrence_id !== null}
-                      isInstallment={transaction.installment_group !== null}
-                      onEdit={startEditing}
-                    />
-                  )}
                 >
                   <div
                     className={`flex size-11 flex-none items-center justify-center rounded-[13px] text-[16px] font-extrabold ${

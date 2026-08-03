@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { updateTransaction } from "@/lib/actions/transactions";
 import { EMPTY_FORM_STATE } from "@/lib/actions/form-state";
 import type { PayableAccount } from "./transaction-form";
+import { TransactionActions } from "./transaction-actions";
 import { Field, FormMessages, SubmitButton, inputClass } from "@/components/ui/form-fields";
 
 export type EditableTransactionData = {
@@ -14,6 +15,8 @@ export type EditableTransactionData = {
   occurredOn: string;
   accountId: string | null;
   installmentLabel: string | null;
+  isFixed: boolean;
+  isInstallment: boolean;
 };
 
 /**
@@ -21,17 +24,19 @@ export type EditableTransactionData = {
  *
  * Recebe o visual por `children` porque Fluxo e Caixa mostram a mesma transação
  * com layouts diferentes — só o modo de edição é comum aos dois.
+ *
+ * As ações são montadas aqui dentro, e não recebidas por prop: quem chama é
+ * Server Component, e função não atravessa a fronteira server→client (não é
+ * serializável no payload RSC). Já quebrou as duas telas em produção assim.
  */
 export function EditableTransaction({
   transaction,
   accounts,
   children,
-  renderActions,
 }: {
   transaction: EditableTransactionData;
   accounts: PayableAccount[];
   children: ReactNode;
-  renderActions: (startEditing: () => void) => ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -48,7 +53,13 @@ export function EditableTransaction({
   return (
     <>
       {children}
-      {renderActions(() => setEditing(true))}
+      <TransactionActions
+        id={transaction.id}
+        description={transaction.description}
+        isFixed={transaction.isFixed}
+        isInstallment={transaction.isInstallment}
+        onEdit={() => setEditing(true)}
+      />
     </>
   );
 }

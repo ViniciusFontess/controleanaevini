@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ConfirmOccurrence } from "@/components/caixa/confirm-occurrence";
 import { NewTransactionPanel } from "@/components/fluxo/transaction-form";
-import { TransactionActions } from "@/components/fluxo/transaction-actions";
 import { EditableTransaction } from "@/components/fluxo/editable-transaction";
 import { Card } from "@/components/ui/card";
 import { RecurrencePanel } from "@/components/caixa/recurrence-panel";
@@ -176,17 +175,10 @@ export default async function CaixaPage() {
                         occurredOn: entry.occurredOn,
                         accountId: entry.accountId,
                         installmentLabel: entry.installmentLabel,
+                        isFixed: entry.isFixed,
+                        isInstallment: entry.isInstallment,
                       }}
                       accounts={payableAccounts}
-                      renderActions={(startEditing) => (
-                        <TransactionActions
-                          id={entry.id}
-                          description={entry.description}
-                          isFixed={entry.isFixed}
-                          isInstallment={entry.isInstallment}
-                          onEdit={startEditing}
-                        />
-                      )}
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[13.5px] font-semibold">
